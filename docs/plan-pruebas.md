@@ -48,7 +48,7 @@ Columna **Auto** = se ejecuta en Postman con aserciones. **Manual** = se ejecuta
 | TC-13 | HU-03: aumentar cantidad | PUT `prod_001` con 5 (estaba en 3) | 200; cantidad = 5 | Sí | | |
 | TC-14 | HU-03: disminuir cantidad | PUT `prod_001` con 1 | 200; cantidad = 1 | Sí | | |
 | TC-15 | HU-03: total actualizado | GET tras TC-13 | `totalItem` = 5 × precio | Sí | | |
-| TC-16 | HU-03: cantidad menor a la válida | PUT con 0 y -2 | 400; el carrito no cambia (a, b, c) | Sí | | |
+| TC-16 | HU-03: cantidad inválida | PUT con 0, -2 y 1.5 | 400; el carrito no cambia (a, b, c, d) | Sí | | |
 | TC-17 | HU-03: producto fuera del carrito | PUT `prod_002` sin haberlo agregado | 404 `PRODUCTO_NO_ENCONTRADO` | Sí | | |
 | TC-18 | RT-01: sin token | GET, POST y PUT sin Authorization | 401 `NO_AUTORIZADO` (a, b, c) | Sí | | |
 | TC-19 | RT-01: token inválido | Token con firma incorrecta | 401 | Sí | | |
@@ -60,7 +60,7 @@ Columna **Auto** = se ejecuta en Postman con aserciones. **Manual** = se ejecuta
 ### Precisiones sobre los casos automatizados
 
 - **TC-04:** se prueba con `prod_002` (precio 129.900) para no alterar la cantidad de `prod_001` que usan TC-03 y siguientes. El resultado esperado es que el ítem quede con 129.900 y no con 1.
-- **TC-16:** el caso incluye una tercera request (c) que consulta el carrito y confirma que la cantidad no cambió después de los dos rechazos.
+- **TC-16:** el caso incluye una cuarta request (d) que consulta el carrito y confirma que la cantidad no cambió después de los tres rechazos (0, -2 y 1.5).
 - **TC-17:** se ejecuta con el usuario 3 (carrito vacío) para asegurar que `prod_002` no está en su carrito.
 - **TC-11 y TC-12:** modifican el estado del mock de Catálogo, por eso están al final de la colección, seguidas de una request de **limpieza** que restaura `prod_001` (precio 49.900, activo).
 - Las requests de la colección **no siguen el orden numérico** de la matriz: se ordenaron por dependencia de estado (por ejemplo, TC-15 va antes que TC-14). El orden correcto de ejecución es el de la colección.
