@@ -1,7 +1,12 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
+import ProductsDemo from './components/ProductsDemo.vue';
+import CartView from './components/CartView.vue';
 </script>
 
 <template>
-  <HelloWorld />
+  <main>
+    <h1>Demo Carrito de Compras</h1>
+    <ProductsDemo />
+    <CartView />
+  </main>
 </template>

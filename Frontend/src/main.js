@@ -1,5 +1,8 @@
-import { createApp } from 'vue'
-import './style.css'
-import App from './App.vue'
+import { createApp } from 'vue';
+import { createPinia } from 'pinia';
+import App from './App.vue';
 
-createApp(App).mount('#app')
+// Solo desarrollo: el token de prueba se guarda en .env.local
+if (import.meta.env.VITE_DEV_TOKEN) localStorage.setItem('token', import.meta.env.VITE_DEV_TOKEN);
+
+createApp(App).use(createPinia()).mount('#app');
