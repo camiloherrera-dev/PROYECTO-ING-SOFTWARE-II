@@ -1,5 +1,6 @@
 const cartRepository = require('../repositories/cartRepository');
 const catalogClient = require('../clients/catalogClient');
+const AppError = require('../errors/AppError');
 const { buildCartResponse } = require('./cartTotals');
 
 // HU-02: conservar addItem (Jeisson) y updateQuantity (Santiago) al integrar.
@@ -29,7 +30,24 @@ function createCartService({ repository = cartRepository, catalog = catalogClien
     }
     return buildResponse(userId, revalidated);
   }
-  return { getCart };
+
+  async function updateQuantity(userId, productId, cantidad) {
+    // TODO: reemplazar por validateQuantity cuando exista
+    if (typeof cantidad !== 'number' || !Number.isInteger(cantidad) || cantidad < 1) {
+      throw new AppError(400, 'VALIDACION_FALLIDA', 'La cantidad debe ser un número entero mayor o igual a 1');
+    }
+
+    const existing = await repository.getItem(userId, productId);
+    if (!existing) {
+      throw new AppError(404, 'PRODUCTO_NO_ENCONTRADO', 'El producto no está en el carrito');
+    }
+
+    await repository.saveItem(userId, { ...existing, cantidad });
+    const items = await repository.getAllItems(userId);
+    return buildResponse(userId, items);
+  }
+
+  return { getCart, updateQuantity };
 }
 
 module.exports = { ...createCartService(), createCartService };
