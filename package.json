@@ -4,9 +4,9 @@
   "private": true,
   "engines": { "node": ">=20" },
   "scripts": {
-    "test": "node --test tests/catalogClient.test.js tests/getCart.test.js && npx jest tests/auth.test.js",
+    "test": "node --test tests/catalogClient.test.js tests/getCart.test.js && npx jest tests/auth.test.js tests/updateQuantity.test.js",
     "test:node": "node --test tests/catalogClient.test.js tests/getCart.test.js",
-    "test:jest": "npx jest tests/auth.test.js",
+    "test:jest": "npx jest tests/auth.test.js tests/updateQuantity.test.js",
     "token": "node scripts/generate-token.js"
   },
   "dependencies": {
