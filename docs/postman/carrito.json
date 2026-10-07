@@ -1,0 +1,1620 @@
+{
+  "info": {
+    "name": "Carrito de Compras - QA Sprint 1",
+    "description": "Coleccion de pruebas del microservicio de carrito (HU-01, HU-02, HU-03, RT-01). Ver docs/plan-pruebas.md. Requiere docker compose up --build. TC-22 y TC-23 (Redis) son manuales con redis-cli.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Genera tokens JWT (HS256) de prueba automaticamente. No hay que pegar tokens a mano.",
+          "function b64url(wa) {",
+          "  return CryptoJS.enc.Base64.stringify(wa).replace(/=+$/, '').replace(/\\+/g, '-').replace(/\\//g, '_');",
+          "}",
+          "function makeToken(sub, secret) {",
+          "  const header = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));",
+          "  const payload = b64url(CryptoJS.enc.Utf8.parse(JSON.stringify({ sub: sub, exp: Math.floor(Date.now() / 1000) + 3600 })));",
+          "  const sig = b64url(CryptoJS.HmacSHA256(header + '.' + payload, secret));",
+          "  return header + '.' + payload + '.' + sig;",
+          "}",
+          "const cv = pm.collectionVariables;",
+          "// Al iniciar la corrida (TC-01) se crean usuarios nuevos: asi la coleccion es repetible",
+          "if (pm.info.requestName.indexOf('TC-01') === 0 || !cv.get('user1')) {",
+          "  const run = Date.now();",
+          "  cv.set('user1', 'qa_u1_' + run);",
+          "  cv.set('user2', 'qa_u2_' + run);",
+          "  cv.set('user3', 'qa_u3_' + run);",
+          "}",
+          "const secret = cv.get('jwtSecret');",
+          "cv.set('token',  makeToken(cv.get('user1'), secret));",
+          "cv.set('token2', makeToken(cv.get('user2'), secret));",
+          "cv.set('token3', makeToken(cv.get('user3'), secret));"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "mockUrl",
+      "value": "http://localhost:4000"
+    },
+    {
+      "key": "jwtSecret",
+      "value": "dev-secret-change-me"
+    },
+    {
+      "key": "user1",
+      "value": ""
+    },
+    {
+      "key": "user2",
+      "value": ""
+    },
+    {
+      "key": "user3",
+      "value": ""
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "token2",
+      "value": ""
+    },
+    {
+      "key": "token3",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "HU-01 Agregar producto",
+      "description": "Estado previo: usuario nuevo (se crea en TC-01).",
+      "item": [
+        {
+          "name": "TC-01 Agregar producto disponible (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "const it = pm.response.json().items.find(i => i.productId === \"prod_001\");",
+                  "pm.test(\"El item aparece con cantidad 2\", () => { pm.expect(it).to.exist; pm.expect(it.cantidad).to.eql(2); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
+            },
+            "description": "Criterio HU-01: el cliente puede agregar un producto disponible. Primera vez => 201.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-02 Se registra la cantidad (GET)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const it = pm.response.json().items.find(i => i.productId === \"prod_001\");",
+                  "pm.test(\"cantidad = 2\", () => pm.expect(it.cantidad).to.eql(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "TC-03 No duplicar entradas: suma cantidad (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const items = pm.response.json().items.filter(i => i.productId === \"prod_001\");",
+                  "pm.test(\"Una sola entrada\", () => pm.expect(items.length).to.eql(1));",
+                  "pm.test(\"cantidad suma 2 + 1 = 3\", () => pm.expect(items[0].cantidad).to.eql(3));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-04 Precio oficial de Catalogo (ignora precio del body)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "const it = pm.response.json().items.find(i => i.productId === \"prod_002\");",
+                  "pm.test(\"Usa el precio del mock (129900), no el enviado (1)\", () => pm.expect(it.precioUnitario).to.eql(129900));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
+            },
+            "description": "RF-14. Se usa prod_002 para no alterar la cantidad de prod_001 (TC-03) y dejar 2 productos para TC-08.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_002\",\n  \"cantidad\": 1,\n  \"precioUnitario\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-05 Producto inactivo (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Formato de error estandar: codigo PRODUCTO_NO_ENCONTRADO\", () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.codigo).to.eql(\"PRODUCTO_NO_ENCONTRADO\");",
+                  "  pm.expect(b.mensaje).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_003\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-06 Producto inexistente (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Formato de error estandar: codigo PRODUCTO_NO_ENCONTRADO\", () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.codigo).to.eql(\"PRODUCTO_NO_ENCONTRADO\");",
+                  "  pm.expect(b.mensaje).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_999\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-07a Cantidad 0 (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Formato de error estandar: codigo VALIDACION_FALLIDA\", () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.codigo).to.eql(\"VALIDACION_FALLIDA\");",
+                  "  pm.expect(b.mensaje).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-07b Cantidad -1 (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Formato de error estandar: codigo VALIDACION_FALLIDA\", () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.codigo).to.eql(\"VALIDACION_FALLIDA\");",
+                  "  pm.expect(b.mensaje).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": -1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-07c Cantidad 1.5 (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Formato de error estandar: codigo VALIDACION_FALLIDA\", () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.codigo).to.eql(\"VALIDACION_FALLIDA\");",
+                  "  pm.expect(b.mensaje).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"productId\": \"prod_001\", \"cantidad\": 1.5}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-07d Cantidad como texto \"2\" (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Formato de error estandar: codigo VALIDACION_FALLIDA\", () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.codigo).to.eql(\"VALIDACION_FALLIDA\");",
+                  "  pm.expect(b.mensaje).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"productId\": \"prod_001\", \"cantidad\": \"2\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "HU-02 Consultar carrito",
+      "description": "",
+      "item": [
+        {
+          "name": "TC-08 Consultar productos del carrito",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const c = pm.response.json();",
+                  "pm.test(\"Hay 2 productos\", () => pm.expect(c.items.length).to.eql(2));",
+                  "pm.test(\"Cada item trae nombre, cantidad y precio\", () => c.items.forEach(i => {",
+                  "  pm.expect(i.nombre).to.be.a(\"string\"); pm.expect(i.cantidad).to.be.a(\"number\"); pm.expect(i.precioUnitario).to.be.a(\"number\");",
+                  "}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "TC-09 Subtotal y total",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const c = pm.response.json();",
+                  "const esperado = c.items.filter(i => i.disponible).reduce((s, i) => s + i.precioUnitario * i.cantidad, 0);",
+                  "pm.test(\"subtotal = suma(precio x cantidad)\", () => pm.expect(c.subtotal).to.eql(esperado));",
+                  "pm.test(\"descuento = 0 en Sprint 1 y total = subtotal\", () => { pm.expect(c.descuentoTotal).to.eql(0); pm.expect(c.total).to.eql(c.subtotal); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "TC-10 Carrito vacio (usuario nuevo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const c = pm.response.json();",
+                  "pm.test(\"items [] y totales en 0 (no es 404)\", () => { pm.expect(c.items).to.eql([]); pm.expect(c.subtotal).to.eql(0); pm.expect(c.total).to.eql(0); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token3}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
+            },
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "HU-03 Modificar cantidad",
+      "description": "",
+      "item": [
+        {
+          "name": "TC-13 Aumentar cantidad 3 -> 5",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const it = pm.response.json().items.find(i => i.productId === \"prod_001\");",
+                  "pm.test(\"cantidad = 5 (reemplaza, no suma)\", () => pm.expect(it.cantidad).to.eql(5));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items/prod_001",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items",
+                "prod_001"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cantidad\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-15 Total actualizado (GET tras TC-13)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const it = pm.response.json().items.find(i => i.productId === \"prod_001\");",
+                  "pm.test(\"totalItem = 5 x precio\", () => pm.expect(it.totalItem).to.eql(5 * it.precioUnitario));",
+                  "const c = pm.response.json();",
+                  "pm.test(\"total = suma de totalItem\", () => pm.expect(c.total).to.eql(c.items.reduce((s, i) => s + i.totalItem, 0)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "TC-14 Disminuir cantidad 5 -> 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const it = pm.response.json().items.find(i => i.productId === \"prod_001\");",
+                  "pm.test(\"cantidad = 1\", () => pm.expect(it.cantidad).to.eql(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items/prod_001",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items",
+                "prod_001"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-16a Cantidad 0 (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Formato de error estandar: codigo VALIDACION_FALLIDA\", () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.codigo).to.eql(\"VALIDACION_FALLIDA\");",
+                  "  pm.expect(b.mensaje).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items/prod_001",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items",
+                "prod_001"
+              ]
+            },
+            "description": "PUT no elimina con 0 (eso es DELETE en Sprint 2).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cantidad\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-16b Cantidad -2 (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Formato de error estandar: codigo VALIDACION_FALLIDA\", () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.codigo).to.eql(\"VALIDACION_FALLIDA\");",
+                  "  pm.expect(b.mensaje).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items/prod_001",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items",
+                "prod_001"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cantidad\": -2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-16c El carrito no cambio tras los rechazos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const it = pm.response.json().items.find(i => i.productId === \"prod_001\");",
+                  "pm.test(\"cantidad sigue en 1\", () => pm.expect(it.cantidad).to.eql(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "TC-17 Producto fuera del carrito (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Formato de error estandar: codigo PRODUCTO_NO_ENCONTRADO\", () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.codigo).to.eql(\"PRODUCTO_NO_ENCONTRADO\");",
+                  "  pm.expect(b.mensaje).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token3}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items/prod_002",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items",
+                "prod_002"
+              ]
+            },
+            "description": "Se usa el usuario 3 (carrito vacio) para garantizar que prod_002 no esta en su carrito.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cantidad\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "RT-01 y RNF-02 Seguridad",
+      "description": "",
+      "item": [
+        {
+          "name": "TC-18a Sin token: GET (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Formato de error estandar: codigo NO_AUTORIZADO\", () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.codigo).to.eql(\"NO_AUTORIZADO\");",
+                  "  pm.expect(b.mensaje).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "TC-18b Sin token: POST (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Formato de error estandar: codigo NO_AUTORIZADO\", () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.codigo).to.eql(\"NO_AUTORIZADO\");",
+                  "  pm.expect(b.mensaje).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-18c Sin token: PUT (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Formato de error estandar: codigo NO_AUTORIZADO\", () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.codigo).to.eql(\"NO_AUTORIZADO\");",
+                  "  pm.expect(b.mensaje).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items/prod_001",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items",
+                "prod_001"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-19 Token con firma invalida (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Formato de error estandar: codigo NO_AUTORIZADO\", () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.codigo).to.eql(\"NO_AUTORIZADO\");",
+                  "  pm.expect(b.mensaje).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer abc.def.ghi"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "TC-20 userId del body/query se ignora (usa el del token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"El carrito es del usuario del token\", () => pm.expect(pm.response.json().userId).to.eql(pm.collectionVariables.get(\"user2\")));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token2}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items?userId=hacker",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "hacker"
+                }
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 1,\n  \"userId\": \"hacker\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-21a Aislamiento: el usuario 2 solo ve lo suyo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const c = pm.response.json();",
+                  "pm.test(\"Solo 1 item (prod_001, cantidad 1)\", () => { pm.expect(c.items.length).to.eql(1); pm.expect(c.items[0].cantidad).to.eql(1); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token2}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "TC-21b Aislamiento: el usuario 1 conserva su carrito",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Usuario 1 tiene 2 items\", () => pm.expect(pm.response.json().items.length).to.eql(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
+            },
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "RF-16 Revalidacion contra Catalogo (usa el mock)",
+      "description": "Se ejecuta al final porque modifica el estado del mock de Catalogo.",
+      "item": [
+        {
+          "name": "TC-11a Mock: subir precio de prod_001 a 59900",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{mockUrl}}/__test/productos/prod_001",
+              "host": [
+                "{{mockUrl}}"
+              ],
+              "path": [
+                "__test",
+                "productos",
+                "prod_001"
+              ]
+            },
+            "description": "Llamada directa al mock de Catalogo (puerto 4000), no pasa por Kong.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"precio\": 59900\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-11b GET: precio nuevo + precioAnterior",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const it = pm.response.json().items.find(i => i.productId === \"prod_001\");",
+                  "pm.test(\"precioUnitario = 59900\", () => pm.expect(it.precioUnitario).to.eql(59900));",
+                  "pm.test(\"precioAnterior = 49900\", () => pm.expect(it.precioAnterior).to.eql(49900));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "TC-12a Mock: desactivar prod_001",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{mockUrl}}/__test/productos/prod_001",
+              "host": [
+                "{{mockUrl}}"
+              ],
+              "path": [
+                "__test",
+                "productos",
+                "prod_001"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-12b GET: disponible=false y no suma al total",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const it = pm.response.json().items.find(i => i.productId === \"prod_001\");",
+                  "pm.test(\"disponible = false (no se borra)\", () => pm.expect(it.disponible).to.eql(false));",
+                  "const c = pm.response.json();",
+                  "const esperado = c.items.filter(i => i.disponible).reduce((s, i) => s + i.totalItem, 0);",
+                  "pm.test(\"El total solo suma items disponibles\", () => pm.expect(c.total).to.eql(esperado));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Limpieza: restaurar prod_001 en el mock",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{mockUrl}}/__test/productos/prod_001",
+              "host": [
+                "{{mockUrl}}"
+              ],
+              "path": [
+                "__test",
+                "productos",
+                "prod_001"
+              ]
+            },
+            "description": "Deja el mock como estaba para poder repetir la coleccion.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"precio\": 49900,\n  \"activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
