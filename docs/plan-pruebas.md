@@ -25,7 +25,7 @@ Productos del mock de Catálogo:
 | `prod_003` | Gorra edición limitada | 35.000 | **Inactivo** |
 | `prod_999` | — | — | No existe (404) |
 
-**Tokens:** la colección genera sola los JWT (HS256, claim `sub`) con tres usuarios nuevos en cada corrida, así que no hay que pegar tokens ni limpiar Redis entre ejecuciones. Si el equipo cambia el secreto o el claim del userId (punto abierto con Catálogo), se ajusta en las variables de la colección.
+**Tokens:** la colección genera sola los JWT (HS256, claim `sub`) con cuatro usuarios nuevos en cada corrida, así que no hay que pegar tokens ni limpiar Redis entre ejecuciones. Si el equipo cambia el secreto o el claim del userId (punto abierto con Catálogo), se ajusta en las variables de la colección.
 
 ## 2. Matriz de casos de prueba — Sprint 1
 
@@ -64,10 +64,10 @@ Los TC-24 a TC-42 cubren HU-04 a HU-07 y los riesgos de persistencia y concurren
 | ID | Criterio de aceptación / regla | Prueba | Resultado esperado | Auto | Resultado (Pasa/Falla) | Evidencia / Bug |
 |---|---|---|---|---|---|---|
 | TC-24 | HU-04: eliminar un producto | Con `prod_001` y `prod_002` en el carrito, DELETE `prod_002` | 200; `prod_002` no aparece; total recalculado | Sí | | |
-| TC-25 | HU-04: eliminar el último producto | DELETE del único producto | 200; `items: []`, total 0 y `EXISTS carrito:{userId}` = 0 | Sí | | |
+| TC-25 | HU-04: eliminar el último producto | DELETE del único producto | 200; `items: []`, total 0 y `EXISTS carrito:{userId}` = 0 | API automatizada; Redis manual | | |
 | TC-26 | HU-04: producto fuera del carrito | DELETE `prod_002` sin haberlo agregado | 404 `PRODUCTO_NO_ENCONTRADO` | Sí | | |
 | TC-27 | HU-04: sin token | DELETE de un ítem sin Authorization | 401 `NO_AUTORIZADO` | Sí | | |
-| TC-28 | HU-05: vaciar carrito | DELETE `/api/carrito` con 2 productos | 200; `items: []`, todos los totales en 0 y la clave no existe en Redis | Sí | | |
+| TC-28 | HU-05: vaciar carrito | DELETE `/api/carrito` con 2 productos | 200; `items: []`, todos los totales en 0 y la clave no existe en Redis | API automatizada; Redis manual | | |
 | TC-29 | HU-05: idempotencia | Repetir TC-28 | 200 con el carrito vacío | Sí | | |
 | TC-30 | HU-05: aislamiento | Vaciar con usuario 1 | El carrito del usuario 2 no cambia | Sí | | |
 | TC-31 | HU-05: sin token | DELETE `/api/carrito` sin Authorization | 401 y no se borra ningún carrito | Sí | | |
@@ -101,6 +101,8 @@ Los TC-24 a TC-42 cubren HU-04 a HU-07 y los riesgos de persistencia y concurren
 4. Ejecutar a mano TC-22 y TC-23 (sección 4).
 5. Registrar Pasa/Falla en la columna de resultado de la matriz y adjuntar la evidencia (captura del Runner de Postman y salida de `redis-cli`).
 6. Correr `npm test` y confirmar que el pipeline de CI está en verde.
+
+La carpeta **Sprint 2 — HU-04 a HU-07** contiene TC-24 a TC-39 y solicitudes de preparación que dejan aislados sus datos. TC-25 y TC-28 requieren además comprobar manualmente en Redis que `EXISTS carrito:{userId}` devuelve 0. Ejecutar la solicitud de limpieza tras TC-39 para restaurar `prod_002` como activo.
 
 ## 4. Casos manuales (Redis)
 
