@@ -1,0 +1,36 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: carrito_redis
+    ports: ["6379:6379"]
+
+  catalog-mock:
+    build: ./mocks/catalog-mock
+    container_name: carrito_catalog_mock
+    ports: ["4000:4000"]
+
+  carrito:
+    build: .
+    container_name: carrito_api
+    ports: ["3000:3000"]
+    env_file: [.env]
+    environment:
+      REDIS_URL: redis://redis:6379
+      CATALOG_BASE_URL: http://catalog-mock:4000
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on: [redis, catalog-mock]
+
+  kong:
+    image: kong:3.7
+    container_name: carrito_kong
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /kong/kong.yml
+      KONG_PROXY_LISTEN: 0.0.0.0:8000
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+    volumes:
+      - ./kong:/kong:ro
+    ports: ["8000:8000", "8001:8001"]
+    depends_on: [carrito]
