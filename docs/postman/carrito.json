@@ -978,7 +978,61 @@
           }
         },
         {
-          "name": "TC-16c El carrito no cambio tras los rechazos",
+          "name": "TC-16c Cantidad 1.5 (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Formato de error estandar: codigo VALIDACION_FALLIDA\", () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.codigo).to.eql(\"VALIDACION_FALLIDA\");",
+                  "  pm.expect(b.mensaje).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items/prod_001",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items",
+                "prod_001"
+              ]
+            },
+            "description": "La cantidad debe ser entera: 1.5 se rechaza.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"cantidad\": 1.5}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "TC-16d El carrito no cambio tras los rechazos",
           "event": [
             {
               "listen": "test",

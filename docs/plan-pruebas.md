@@ -1,4 +1,4 @@
-# Plan de pruebas — Sprint 1 (Microservicio de Carrito)
+# Plan de pruebas — Sprint 1 y Sprint 2 (Microservicio de Carrito)
 
 | | |
 |---|---|
@@ -27,7 +27,7 @@ Productos del mock de Catálogo:
 
 **Tokens:** la colección genera sola los JWT (HS256, claim `sub`) con tres usuarios nuevos en cada corrida, así que no hay que pegar tokens ni limpiar Redis entre ejecuciones. Si el equipo cambia el secreto o el claim del userId (punto abierto con Catálogo), se ajusta en las variables de la colección.
 
-## 2. Matriz de casos de prueba
+## 2. Matriz de casos de prueba — Sprint 1
 
 Columna **Auto** = se ejecuta en Postman con aserciones. **Manual** = se ejecuta a mano y se adjunta evidencia.
 
@@ -48,7 +48,7 @@ Columna **Auto** = se ejecuta en Postman con aserciones. **Manual** = se ejecuta
 | TC-13 | HU-03: aumentar cantidad | PUT `prod_001` con 5 (estaba en 3) | 200; cantidad = 5 | Sí | | |
 | TC-14 | HU-03: disminuir cantidad | PUT `prod_001` con 1 | 200; cantidad = 1 | Sí | | |
 | TC-15 | HU-03: total actualizado | GET tras TC-13 | `totalItem` = 5 × precio | Sí | | |
-| TC-16 | HU-03: cantidad menor a la válida | PUT con 0 y -2 | 400; el carrito no cambia (a, b, c) | Sí | | |
+| TC-16 | HU-03: cantidad inválida | PUT con 0, -2 y 1.5 | 400; el carrito no cambia (a, b, c, d) | Sí | | |
 | TC-17 | HU-03: producto fuera del carrito | PUT `prod_002` sin haberlo agregado | 404 `PRODUCTO_NO_ENCONTRADO` | Sí | | |
 | TC-18 | RT-01: sin token | GET, POST y PUT sin Authorization | 401 `NO_AUTORIZADO` (a, b, c) | Sí | | |
 | TC-19 | RT-01: token inválido | Token con firma incorrecta | 401 | Sí | | |
@@ -57,10 +57,38 @@ Columna **Auto** = se ejecuta en Postman con aserciones. **Manual** = se ejecuta
 | TC-22 | RNF-03: persistencia | `redis-cli HGETALL carrito:{userId}` | El hash existe con los ítems | **Manual** | | |
 | TC-23 | RNF-03: TTL | `redis-cli TTL carrito:{userId}` | TTL ≈ 604800 y se renueva al escribir | **Manual** | | |
 
+## 2.1 Matriz de casos de prueba — Sprint 2
+
+Los TC-24 a TC-42 cubren HU-04 a HU-07 y los riesgos de persistencia y concurrencia. Registrar Pasa/Falla y enlazar evidencia solo después de ejecutar cada caso en el entorno integrado.
+
+| ID | Criterio de aceptación / regla | Prueba | Resultado esperado | Auto | Resultado (Pasa/Falla) | Evidencia / Bug |
+|---|---|---|---|---|---|---|
+| TC-24 | HU-04: eliminar un producto | Con `prod_001` y `prod_002` en el carrito, DELETE `prod_002` | 200; `prod_002` no aparece; total recalculado | Sí | | |
+| TC-25 | HU-04: eliminar el último producto | DELETE del único producto | 200; `items: []`, total 0 y `EXISTS carrito:{userId}` = 0 | Sí | | |
+| TC-26 | HU-04: producto fuera del carrito | DELETE `prod_002` sin haberlo agregado | 404 `PRODUCTO_NO_ENCONTRADO` | Sí | | |
+| TC-27 | HU-04: sin token | DELETE de un ítem sin Authorization | 401 `NO_AUTORIZADO` | Sí | | |
+| TC-28 | HU-05: vaciar carrito | DELETE `/api/carrito` con 2 productos | 200; `items: []`, todos los totales en 0 y la clave no existe en Redis | Sí | | |
+| TC-29 | HU-05: idempotencia | Repetir TC-28 | 200 con el carrito vacío | Sí | | |
+| TC-30 | HU-05: aislamiento | Vaciar con usuario 1 | El carrito del usuario 2 no cambia | Sí | | |
+| TC-31 | HU-05: sin token | DELETE `/api/carrito` sin Authorization | 401 y no se borra ningún carrito | Sí | | |
+| TC-32 | HU-06: desglose | GET con productos | Respuesta incluye subtotal, descuentos, total y `descuentosAplicados`; se cumplen las identidades de la sección 3.3 del contrato | Sí | | |
+| TC-33 | HU-07: porcentaje por producto | Agregar 1 × `prod_002` | `descuentoAplicadoItem` = 12.990 | Sí | | |
+| TC-34 | HU-07: cantidad mínima | Probar 2 y luego 3 × `prod_001` | Descuento 0 con 2; 22.455 con 3 | Sí | | |
+| TC-35 | HU-07: monto mínimo de carrito | 3 × `prod_001` + 2 × `prod_002` | `descuentoCarrito` = 18.053; total = 343.012 | Sí | | |
+| TC-36 | HU-07: umbral sobre base neta | 3 × `prod_001` + 1 × `prod_002` | `descuentoCarrito` = 0 (base neta = 244.155) | Sí | | |
+| TC-37 | HU-06: total al modificar | Desde TC-35, PUT `prod_001` a cantidad 2 | Sin descuento de camisetas; `descuentoCarrito` = 16.681; total = 316.939 | Sí | | |
+| TC-38 | HU-06: total al eliminar | Desde TC-35, DELETE `prod_002` | Sin descuento de carrito; total = 127.245 | Sí | | |
+| TC-39 | HU-07: productos no disponibles | Desde TC-35, desactivar `prod_002` en el mock y hacer GET | `prod_002` tiene `disponible:false` y descuento 0; total = 127.245 | Sí | | |
+| TC-40 | HU-07: modo degradado | Simular fallo en `getActiveRules` y consultar el carrito | 200; descuentos en 0; `descuentosDisponibles:false`; total = subtotal | **Manual** | | |
+| TC-41 | RNF-03: TTL al eliminar | DELETE de un ítem dejando otro en el carrito; consultar TTL | TTL cercano a 604800 segundos (renovado) | **Manual** | | |
+| TC-42 | Concurrencia | 20 POST simultáneos de 1 unidad de `prod_001` | Cantidad final 20; un 201 y diecinueve 200 | **Manual** | | |
+
+**Orden y limpieza:** TC-37 a TC-39 modifican estado. Ejecutarlos al final de la colección y después restaurar el mock (`prod_002` activo). TC-40 requiere simular la falla del módulo de descuentos; TC-41 y TC-42 requieren observación manual del entorno.
+
 ### Precisiones sobre los casos automatizados
 
 - **TC-04:** se prueba con `prod_002` (precio 129.900) para no alterar la cantidad de `prod_001` que usan TC-03 y siguientes. El resultado esperado es que el ítem quede con 129.900 y no con 1.
-- **TC-16:** el caso incluye una tercera request (c) que consulta el carrito y confirma que la cantidad no cambió después de los dos rechazos.
+- **TC-16:** el caso incluye una cuarta request (d) que consulta el carrito y confirma que la cantidad no cambió después de los tres rechazos (0, -2 y 1.5).
 - **TC-17:** se ejecuta con el usuario 3 (carrito vacío) para asegurar que `prod_002` no está en su carrito.
 - **TC-11 y TC-12:** modifican el estado del mock de Catálogo, por eso están al final de la colección, seguidas de una request de **limpieza** que restaura `prod_001` (precio 49.900, activo).
 - Las requests de la colección **no siguen el orden numérico** de la matriz: se ordenaron por dependencia de estado (por ejemplo, TC-15 va antes que TC-14). El orden correcto de ejecución es el de la colección.
@@ -84,15 +112,15 @@ docker exec -it carrito_redis redis-cli TTL carrito:<userId>       # TC-23: ~604
 # TC-23 (renovación): esperar unos segundos, hacer un PUT o POST y repetir TTL: debe volver cerca de 604800
 ```
 
-## 5. Pruebas automáticas en el repositorio (Jest)
+## 5. Pruebas automáticas en el repositorio
 
 | Archivo | Cubre | Autor |
 |---|---|---|
-| `tests/auth.test.js` | RT-01 | Jose David |
-| `tests/cartRepository.test.js`, `tests/addItem.test.js` | HU-01 (repositorio y servicio) | Jeisson |
-| `tests/catalogClient.test.js`, `tests/getCart.test.js` | HU-02 | Camilo |
-| `tests/updateQuantity.test.js` | HU-03 | Sofía |
-| `tests/addItemEndpoint.test.js` | HU-01 (endpoint) | Sofía (apoyo) |
+| `tests/node/catalogClient.test.js` | Cliente de Catálogo | Camilo |
+| `tests/node/getCart.test.js` | HU-02 | Camilo |
+| `tests/addItem.test.js` | HU-01 (servicio) | Jeisson |
+| `tests/cartRepository.test.js` | HU-01, HU-04 y HU-05 (repositorio) | Jeisson |
+| `tests/cartEndpoints.test.js` | Endpoints HU-01, HU-04 y HU-05 | Sofía (QA) |
 
 ## 6. Gestión de defectos
 
@@ -102,9 +130,9 @@ docker exec -it carrito_redis redis-cli TTL carrito:<userId>       # TC-23: ~604
 
 ## 7. Criterios de salida (QA)
 
-- Los 23 casos están ejecutados y registrados.
+- Los 42 casos están ejecutados y registrados con evidencia.
 - No hay bugs críticos abiertos.
-- HU-01, HU-02 y HU-03 cumplen sus criterios de aceptación y reciben el visto bueno de QA para pasar a *Finalizada*.
+- HU-01 a HU-07 cumplen sus criterios de aceptación y reciben el visto bueno de QA para pasar a *Finalizada*.
 - `npm test` pasa y el CI está en verde.
 
 ## 8. Dependencias y riesgos
