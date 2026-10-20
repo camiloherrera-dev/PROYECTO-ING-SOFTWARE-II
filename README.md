@@ -1,29 +1,111 @@
-# Carrito — HU-02 (Camilo Herrera)
+# Microservicio de Carrito de Compras
 
-Implementación parcial del Sprint 1: cliente de Catálogo y consulta del carrito con revalidación de precios y disponibilidad. Requiere Node.js 20 o superior. No necesita frontend ni instalar paquetes para ejecutar estas pruebas.
+Proyecto Final de Ingeniería de Software II. Es un microservicio de carrito con función de descuento.
 
-## Ejecutar pruebas en Windows
+**Stack:** Node.js 20 + Express · Redis 7 (ioredis) · JWT · Kong API Gateway · Vue.js 3 (Vite + Pinia) · Docker Compose · GitHub Actions.
 
-Desde CMD, en la carpeta del proyecto:
+## Requisitos
 
-```bat
-run-tests.cmd
+- Docker Desktop (con Docker Compose)
+- Node.js 20 o superior (para correr pruebas y generar tokens fuera de Docker)
+- Git
+
+## Cómo correr el proyecto
+
+```bash
+cp .env.example .env          # en PowerShell: Copy-Item .env.example .env
+npm install
+docker compose up --build
 ```
 
-Para abrir una ventana CMD independiente y mantener los resultados visibles:
+Esto levanta Redis, el mock de Catálogo, la API del carrito y Kong. Para comprobar que todo arrancó:
 
-```bat
-start "Pruebas HU-02" cmd /k run-tests.cmd
+```bash
+curl http://localhost:3000/health          # {"status":"ok"}
+curl -i http://localhost:8000/api/carrito  # 401 NO_AUTORIZADO (Kong → API, sin token)
 ```
 
-También puedes ejecutar `npm test`. El lanzador guarda el resultado en `test-results/latest.log` y el código de salida en `test-results/exit-code.txt` (0 indica éxito). Esos resultados locales no se versionan.
+En los logs del contenedor `carrito_api` debe aparecer `Redis connection successful`.
 
-Se prueban mapeo y errores de Catálogo, timeout con HTTP local real, carrito vacío, totales, productos eliminados/inactivos, cambios de precio y fallos de dependencias. Los datos Redis son simulados; no hay aún endpoint HTTP del carrito ni validación JWT.
+### Puertos
 
-## Configuración e integración
+| Servicio | Puerto | Uso |
+| --- | --- | --- |
+| Kong (proxy) | 8000 | Entrada pública: `http://localhost:8000/api/carrito` |
+| Kong (admin) | 8001 | Administración de Kong |
+| API del carrito | 3000 | Acceso directo (solo desarrollo) y `/health` |
+| Mock de Catálogo | 4000 | `GET /api/catalogo/productos/:id` |
+| Redis | 6379 | Hash `carrito:<userId>`, TTL de 7 días |
+| Frontend (Vite) | 5173 | Interfaz Vue |
 
-`CATALOG_BASE_URL` y `CATALOG_TIMEOUT_MS` se leen del entorno del proceso; los valores predeterminados son `http://localhost:4000` y `3000`. `.env.example` es una referencia: esta base todavía no carga archivos `.env` automáticamente.
+## Token de prueba
 
-El repositorio Redis falla explícitamente hasta incorporar el trabajo de Jeisson. Las fábricas `createCartService` y `createCatalogClient` permiten verificar la lógica sin implementar las tareas restantes del equipo.
+Todas las rutas de `/api/carrito` exigen `Authorization: Bearer <JWT>`. El `userId` sale del claim `sub`.
 
-Consulta [INTEGRACION-EQUIPO.md](INTEGRACION-EQUIPO.md) para ver qué conservar, qué reemplazar, responsables y pruebas pendientes cuando se complete el backend.
+```bash
+npm run token -- usr_demo
+```
+
+El secreto es `JWT_SECRET` en `.env`. Es un secreto simulado solo para pruebas; Keycloak real queda fuera del alcance.
+
+## Pruebas
+
+```bash
+npm test            # node:test (tests/node/) + Jest (tests/*.test.js)
+npm run test:node   # solo las pruebas de HU-02 con node:test
+npm run test:jest   # solo Jest
+```
+
+En Windows también funciona `run-tests.cmd`, que guarda la salida en `test-results/latest.log`.
+
+## Frontend
+
+```bash
+cd Frontend
+npm install
+npm run dev   # http://localhost:5173
+```
+
+El frontend habla con Kong (`http://localhost:8000/api/carrito`), así que el backend debe estar corriendo con Docker Compose.
+
+## Estructura
+
+```
+src/
+  app.js, server.js        Express y arranque (conecta Redis antes de escuchar)
+  config/env.js            Variables de entorno (dotenv)
+  redis/redisClient.js     Cliente ioredis
+  middlewares/             authJwt (RT-01) y manejador de errores
+  routes/ services/        Rutas y lógica del carrito
+  repositories/            Único módulo que habla con Redis
+  clients/catalogClient.js Cliente HTTP de Catálogo
+tests/                     Jest; tests/node/ usa node:test
+Frontend/                  Vue 3 + Vite + Pinia
+mocks/catalog-mock/        Mock de Catálogo para desarrollo
+kong/kong.yml              Configuración declarativa de Kong
+docs/                      Plan de pruebas, colección Postman, contrato
+```
+
+## Flujo de trabajo
+
+- Todo PR apunta a `develop`. `main` solo recibe el merge de cierre de cada sprint.
+- Una rama por tarea, creada desde `develop` actualizado: `feature/SCRUM-XX-descripcion`.
+- Commits con Conventional Commits y la clave de Jira: `feat(SCRUM-22): eliminar producto del carrito`.
+- Antes del PR: `npm test` en verde y `git diff --stat origin/develop` con solo los archivos de la tarea.
+
+## Reglas de descuento
+
+Se documentan cuando entre el Módulo Descuentos (HU-06/HU-07, `src/discounts/`).
+
+## Acuerdos con Catálogo
+
+Pendientes de confirmar con el equipo de Catálogo (responsable: Juan David):
+
+- Forma exacta de `GET /api/catalogo/productos/{id}` (nombres de campo y tipo del precio).
+- Si un producto inactivo responde 404 o 200 con `activo: false` (el cliente soporta ambos).
+- Si Catálogo expone `categoria`.
+- URL base, puerto y quién opera el Kong compartido.
+- Claim del JWT (`sub`) y secreto de pruebas común.
+- Reserva de stock (bloquea HU-09 en el Sprint 3).
+
+El historial de la integración del Sprint 1 está en `docs/historico/INTEGRACION-EQUIPO.md`.
