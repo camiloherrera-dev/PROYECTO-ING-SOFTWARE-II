@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { createCartService } = require('../src/services/cartService');
-const AppError = require('../src/errors/AppError');
+const { createCartService } = require('../../src/services/cartService');
+const AppError = require('../../src/errors/AppError');
 
 const item = (id = 'p1', price = 100, quantity = 2) => ({
   productId: id, nombre: id, precioUnitario: price, cantidad: quantity,
@@ -87,5 +87,5 @@ test('fallo de persistencia no se convierte en éxito ni en error de Catálogo',
 });
 
 test('repositorio pendiente falla explícitamente hasta integrar Redis', async () => {
-  await assert.rejects(require('../src/services/cartService').getCart('u1'), /Repositorio Redis pendiente/);
+  await assert.rejects(require('../../src/services/cartService').getCart('u1'), /Repositorio Redis pendiente/);
 });
