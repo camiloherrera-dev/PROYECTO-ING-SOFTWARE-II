@@ -23,3 +23,9 @@ export const addItem = (productId, cantidad) =>
   request('/items', { method: 'POST', body: JSON.stringify({ productId, cantidad }) });
 export const updateQuantity = (productId, cantidad) =>
   request(`/items/${encodeURIComponent(productId)}`, { method: 'PUT', body: JSON.stringify({ cantidad }) });
+
+
+// Sprint 2
+export const removeItem = (productId) =>
+  request(`/items/${encodeURIComponent(productId)}`, { method: 'DELETE' }); // HU-04
+export const clearCart = () => request('', { method: 'DELETE' });           // HU-05
