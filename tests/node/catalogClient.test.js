@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
-const { createCatalogClient } = require('../src/clients/catalogClient');
+const { createCatalogClient } = require('../../src/clients/catalogClient');
 
 const product = { id: 'prod_001', nombre: 'Camiseta', precio: 49900, activo: true };
 const response = (status, body) => ({ status, ok: status >= 200 && status < 300, json: async () => body });

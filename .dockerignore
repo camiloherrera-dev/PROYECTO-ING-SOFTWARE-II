@@ -1,0 +1,6 @@
+node_modules
+Frontend
+.git
+.env
+coverage
+test-results
