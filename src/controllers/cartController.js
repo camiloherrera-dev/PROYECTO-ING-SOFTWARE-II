@@ -16,5 +16,11 @@ module.exports = {
     res.status(200).json(await cartService.updateQuantity(req.userId, req.params.productId, cantidad));
   }),
 
-  // addItem: Jeisson · removeItem y clearCart: Santiago
+  addItem: handle(async (req, res) => { // HU-01 (Jeisson)
+    const { productId, cantidad } = req.body || {};
+    const { created, cart } = await cartService.addItem(req.userId, productId, cantidad);
+    res.status(created ? 201 : 200).json(cart); // 201 = primera vez, 200 = ya existía
+  }),
+
+  // removeItem y clearCart: Santiago
 };
