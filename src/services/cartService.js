@@ -69,7 +69,23 @@ function createCartService({ repository = cartRepository, catalog = catalogClien
     return buildResponse(userId, items);
   }
 
-  return { getCart, addItem, updateQuantity };
+  // =================== HU-04 Eliminar producto (Santiago) ===================
+  async function removeItem(userId, productId) {
+    const removed = await repository.removeItem(userId, productId);
+    if (!removed) {
+      throw new AppError(404, 'PRODUCTO_NO_ENCONTRADO', 'El producto no está en el carrito');
+    }
+    const items = await repository.getAllItems(userId); // [] si era el último
+    return buildResponse(userId, items); // totales recalculados sin el producto
+  }
+
+  // =================== HU-05 Vaciar carrito (Santiago) ===================
+  async function clearCart(userId) {
+    await repository.clearCart(userId); // idempotente: vaciar un carrito vacío también es 200
+    return buildResponse(userId, []);
+  }
+
+  return { getCart, addItem, updateQuantity, removeItem, clearCart };
 }
 
 module.exports = { ...createCartService(), createCartService };
