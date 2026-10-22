@@ -8,7 +8,8 @@ const router = express.Router();
 router.use(authJwt); // RT-01: antes de cualquier ruta
 
 router.get('/', ctrl.getCart); // HU-02
+router.post('/items', ctrl.addItem); // HU-01
 router.put('/items/:productId', ctrl.updateItem); // HU-03
-// POST /items (Jeisson) · DELETE / y DELETE /items/:productId (Santiago)
+// DELETE / y DELETE /items/:productId (Santiago)
 
 module.exports = router;

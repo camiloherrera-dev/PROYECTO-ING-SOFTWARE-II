@@ -48,6 +48,31 @@ npm run token -- usr_demo
 
 El secreto es `JWT_SECRET` en `.env`. Es un secreto simulado solo para pruebas; Keycloak real queda fuera del alcance.
 
+### Probar el carrito por Kong
+
+```bash
+export TOKEN=$(npm run --silent token -- usr_test)
+
+# HU-01: agregar (201 la primera vez; 200 y cantidad sumada si se repite)
+curl -i -X POST http://localhost:8000/api/carrito/items \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"productId":"prod_001","cantidad":2}'
+
+# HU-02: consultar
+curl -i http://localhost:8000/api/carrito -H "Authorization: Bearer $TOKEN"
+
+# HU-03: reemplazar la cantidad
+curl -i -X PUT http://localhost:8000/api/carrito/items/prod_001 \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"cantidad":5}'
+
+# Redis: el hash y su TTL (~604800)
+docker exec -it carrito_redis redis-cli HGETALL carrito:usr_test
+docker exec -it carrito_redis redis-cli TTL carrito:usr_test
+```
+
+Productos del mock de Catálogo: `prod_001` (49.900), `prod_002` (129.900) y `prod_003` (inactivo → 404).
+
 ## Pruebas
 
 ```bash
