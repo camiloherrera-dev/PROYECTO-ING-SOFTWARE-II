@@ -86,6 +86,3 @@ test('fallo de persistencia no se convierte en éxito ni en error de Catálogo',
   await assert.rejects(service.getCart('u1'), error);
 });
 
-test('repositorio pendiente falla explícitamente hasta integrar Redis', async () => {
-  await assert.rejects(require('../../src/services/cartService').getCart('u1'), /Repositorio Redis pendiente/);
-});
