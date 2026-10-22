@@ -54,8 +54,8 @@ Columna **Auto** = se ejecuta en Postman con aserciones. **Manual** = se ejecuta
 | TC-19 | RT-01: token inválido | Token con firma incorrecta | 401 | Sí | | |
 | TC-20 | RNF-02: userId del token | POST con `userId` en body y en query | Se usa el del token | Sí | | |
 | TC-21 | Aislamiento entre usuarios | Dos tokens distintos | Cada uno ve solo su carrito (a, b) | Sí | | |
-| TC-22 | RNF-03: persistencia | `redis-cli HGETALL carrito:{userId}` | El hash existe con los ítems | **Manual** | | |
-| TC-23 | RNF-03: TTL | `redis-cli TTL carrito:{userId}` | TTL ≈ 604800 y se renueva al escribir | **Manual** | | |
+| TC-22 | RNF-03: persistencia | `redis-cli HGETALL carrito:{userId}` | El hash existe con los ítems | **Manual** | Pasa (claves inspeccionadas) | resultados-qa-sprint2-2026-10-22.md |
+| TC-23 | RNF-03: TTL | `redis-cli TTL carrito:{userId}` | TTL ≈ 604800 y se renueva al escribir | **Manual** | Pasa | resultados-qa-sprint2-2026-10-22.md |
 
 ## 2.1 Matriz de casos de prueba — Sprint 2
 
@@ -64,10 +64,10 @@ Los TC-24 a TC-42 cubren HU-04 a HU-07 y los riesgos de persistencia y concurren
 | ID | Criterio de aceptación / regla | Prueba | Resultado esperado | Auto | Resultado (Pasa/Falla) | Evidencia / Bug |
 |---|---|---|---|---|---|---|
 | TC-24 | HU-04: eliminar un producto | Con `prod_001` y `prod_002` en el carrito, DELETE `prod_002` | 200; `prod_002` no aparece; total recalculado | Sí | | |
-| TC-25 | HU-04: eliminar el último producto | DELETE del único producto | 200; `items: []`, total 0 y `EXISTS carrito:{userId}` = 0 | API automatizada; Redis manual | | |
+| TC-25 | HU-04: eliminar el último producto | DELETE del único producto | 200; `items: []`, total 0 y `EXISTS carrito:{userId}` = 0 | API automatizada; Redis manual | Pasa | resultados-qa-sprint2-2026-10-22.md |
 | TC-26 | HU-04: producto fuera del carrito | DELETE `prod_002` sin haberlo agregado | 404 `PRODUCTO_NO_ENCONTRADO` | Sí | | |
 | TC-27 | HU-04: sin token | DELETE de un ítem sin Authorization | 401 `NO_AUTORIZADO` | Sí | | |
-| TC-28 | HU-05: vaciar carrito | DELETE `/api/carrito` con 2 productos | 200; `items: []`, todos los totales en 0 y la clave no existe en Redis | API automatizada; Redis manual | | |
+| TC-28 | HU-05: vaciar carrito | DELETE `/api/carrito` con 2 productos | 200; `items: []`, todos los totales en 0 y la clave no existe en Redis | API automatizada; Redis manual | Pasa | resultados-qa-sprint2-2026-10-22.md |
 | TC-29 | HU-05: idempotencia | Repetir TC-28 | 200 con el carrito vacío | Sí | | |
 | TC-30 | HU-05: aislamiento | Vaciar con usuario 1 | El carrito del usuario 2 no cambia | Sí | | |
 | TC-31 | HU-05: sin token | DELETE `/api/carrito` sin Authorization | 401 y no se borra ningún carrito | Sí | | |
@@ -80,8 +80,8 @@ Los TC-24 a TC-42 cubren HU-04 a HU-07 y los riesgos de persistencia y concurren
 | TC-38 | HU-06: total al eliminar | Desde TC-35, DELETE `prod_002` | Sin descuento de carrito; total = 127.245 | Sí | | |
 | TC-39 | HU-07: productos no disponibles | Desde TC-35, desactivar `prod_002` en el mock y hacer GET | `prod_002` tiene `disponible:false` y descuento 0; total = 127.245 | Sí | | |
 | TC-40 | HU-07: modo degradado | Simular fallo en `getActiveRules` y consultar el carrito | 200; descuentos en 0; `descuentosDisponibles:false`; total = subtotal | **Manual** | | |
-| TC-41 | RNF-03: TTL al eliminar | DELETE de un ítem dejando otro en el carrito; consultar TTL | TTL cercano a 604800 segundos (renovado) | **Manual** | | |
-| TC-42 | Concurrencia | 20 POST simultáneos de 1 unidad de `prod_001` | Cantidad final 20; un 201 y diecinueve 200 | **Manual** | | |
+| TC-41 | RNF-03: TTL al eliminar | DELETE de un ítem dejando otro en el carrito; consultar TTL | TTL cercano a 604800 segundos (renovado) | **Manual** | Pasa | resultados-qa-sprint2-2026-10-22.md |
+| TC-42 | Concurrencia | 20 POST simultáneos de 1 unidad de `prod_001` | Cantidad final 20; un 201 y diecinueve 200 | **Manual** | Pasa | resultados-qa-sprint2-2026-10-22.md |
 
 **Orden y limpieza:** TC-37 a TC-39 modifican estado. Ejecutarlos al final de la colección y después restaurar el mock (`prod_002` activo). TC-40 requiere simular la falla del módulo de descuentos; TC-41 y TC-42 requieren observación manual del entorno.
 
