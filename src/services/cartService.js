@@ -31,6 +31,28 @@ function createCartService({ repository = cartRepository, catalog = catalogClien
     return buildResponse(userId, revalidated);
   }
 
+  async function addItem(userId, productId, cantidad) {
+    if (typeof productId !== 'string' || !productId.trim()) {
+      throw new AppError(400, 'VALIDACION_FALLIDA', 'productId es obligatorio');
+    }
+    if (!Number.isInteger(cantidad) || cantidad <= 0) {
+      throw new AppError(400, 'VALIDACION_FALLIDA', 'La cantidad debe ser un entero mayor a 0');
+    }
+    const product = await catalog.getProduct(productId);
+    if (!product || !product.activo) {
+      throw new AppError(404, 'PRODUCTO_NO_ENCONTRADO', 'El producto no existe o no está activo');
+    }
+    const existing = await repository.getItem(userId, productId);
+    await repository.saveItem(userId, {
+      productId,
+      nombre: product.nombre,
+      precioUnitario: product.precio,
+      cantidad: (existing ? existing.cantidad : 0) + cantidad,
+    });
+    const items = await repository.getAllItems(userId);
+    return { created: !existing, cart: buildResponse(userId, items) };
+  }
+
   async function updateQuantity(userId, productId, cantidad) {
     // TODO: reemplazar por validateQuantity cuando exista
     if (typeof cantidad !== 'number' || !Number.isInteger(cantidad) || cantidad < 1) {
@@ -47,7 +69,7 @@ function createCartService({ repository = cartRepository, catalog = catalogClien
     return buildResponse(userId, items);
   }
 
-  return { getCart, updateQuantity };
+  return { getCart, addItem, updateQuantity };
 }
 
 module.exports = { ...createCartService(), createCartService };
