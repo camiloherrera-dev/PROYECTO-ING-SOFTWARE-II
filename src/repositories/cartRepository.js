@@ -1,7 +1,21 @@
-// Punto de integración pendiente: Jeisson implementa Redis.
-// Fallar explícitamente evita presentar un carrito vacío como si hubiera persistencia.
-async function pending() {
-  throw new Error('Repositorio Redis pendiente de integración con el trabajo de Jeisson');
+const { redis } = require('../redis/redisClient');
+const { cartTtlSeconds } = require('../config/env');
+
+const key = (userId) => `carrito:${userId}`;
+
+async function getItem(userId, productId) {
+  const raw = await redis.hget(key(userId), productId);
+  return raw ? JSON.parse(raw) : null;
 }
 
-module.exports = { getItem: pending, getAllItems: pending, saveItem: pending };
+async function saveItem(userId, item) {
+  const k = key(userId);
+  await redis.multi().hset(k, item.productId, JSON.stringify(item)).expire(k, cartTtlSeconds).exec();
+}
+
+async function getAllItems(userId) {
+  const data = await redis.hgetall(key(userId));
+  return Object.values(data || {}).map((raw) => JSON.parse(raw));
+}
+
+module.exports = { getItem, saveItem, getAllItems };
