@@ -1,24 +1,17 @@
 const express = require('express');
 const { authJwt } = require('../middlewares/authJwt');
+const ctrl = require('../controllers/cartController');
 const cartService = require('../services/cartService');
 
+// Las rutas ya no tienen lógica: solo asocian método y ruta con el controlador.
 const router = express.Router();
 
-router.use(authJwt);
+router.use(authJwt); // RT-01: antes de cualquier ruta
 
-// TODO: Conectar con cartService.getCart (Jeisson/Santiago)
-router.get('/', (req, res) => {
-  res.status(501).json({ codigo: 'NO_IMPLEMENTADO', mensaje: 'Endpoint en construcción' });
-});
+router.get('/', ctrl.getCart); // HU-02 (Camilo)
+router.post('/items', ctrl.addItem); // HU-01 (Jeisson)
+router.put('/items/:productId', ctrl.updateItem); // HU-03
 
-router.put('/items/:productId', async (req, res, next) => {
-  try {
-    const cart = await cartService.updateQuantity(req.userId, req.params.productId, (req.body || {}).cantidad);
-    res.status(200).json(cart);
-  } catch (err) {
-    next(err);
-  }
-});
 // HU-04 Eliminar producto (Santiago)
 router.delete('/items/:productId', async (req, res, next) => {
   try {
