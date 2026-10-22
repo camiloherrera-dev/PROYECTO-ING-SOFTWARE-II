@@ -19,5 +19,24 @@ router.put('/items/:productId', async (req, res, next) => {
     next(err);
   }
 });
+// HU-04 Eliminar producto (Santiago)
+router.delete('/items/:productId', async (req, res, next) => {
+  try {
+    const cart = await cartService.removeItem(req.userId, req.params.productId);
+    res.status(200).json(cart);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// HU-05 Vaciar carrito (Santiago)
+router.delete('/', async (req, res, next) => {
+  try {
+    const cart = await cartService.clearCart(req.userId);
+    res.status(200).json(cart);
+  } catch (err) {
+    next(err);
+  }
+});
 
 module.exports = router;
