@@ -9,6 +9,7 @@
     "test": "npm run test:node && npm run test:jest",
     "test:node": "node --test tests/node/catalogClient.test.js tests/node/getCart.test.js",
     "test:jest": "jest --runInBand",
+    "e2e": "node scripts/e2e.js",
     "token": "node scripts/generate-token.js"
   },
   "dependencies": {
