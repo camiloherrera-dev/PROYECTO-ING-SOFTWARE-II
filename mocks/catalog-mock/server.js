@@ -2,14 +2,16 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 
+// Copia del contrato real de Catálogo (acuerdo del 27/10/2026). Los ids reales son ObjectId de
+// MongoDB; aquí se usan prod_00X para la demo.
 const productos = {
-  prod_001: { id: 'prod_001', nombre: 'Camiseta básica algodón', precio: 49900, activo: true, stock: 20 },
-  prod_002: { id: 'prod_002', nombre: 'Jean clásico', precio: 129900, activo: true, stock: 10 },
-  prod_003: { id: 'prod_003', nombre: 'Gorra edición limitada', precio: 35000, activo: false, stock: 0 },
+  prod_001: { id: 'prod_001', nombre: 'Camiseta básica algodón', precio: 49900, activo: true, stock: 20, categoria: 'cat-ropa' },
+  prod_002: { id: 'prod_002', nombre: 'Jean clásico', precio: 129900, activo: true, stock: 10, categoria: 'cat-ropa' },
+  prod_003: { id: 'prod_003', nombre: 'Gorra edición limitada', precio: 35000, activo: false, stock: 0, categoria: 'cat-accesorios' },
 };
-const reservas = {}; // referencia → { reservaId, items }
-let siguienteReserva = 1; // contador: un reservaId nunca se repite
+const descuentos = {}; // referencia → items descontados (PROPUESTO: hoy Catálogo no guarda referencia)
 
+// Como Catálogo: inactivo responde 200 con activo: false; 404 solo si el id no existe.
 app.get('/api/catalogo/productos/:id', (req, res) => {
   const p = productos[req.params.id];
   if (!p) {
@@ -18,34 +20,33 @@ app.get('/api/catalogo/productos/:id', (req, res) => {
   res.json(p);
 });
 
-// HU-10: reservar stock. Idempotente por referencia (el checkoutId del carrito).
-app.post('/api/catalogo/reservas', (req, res) => {
+// Como Catálogo: descuenta todo o nada. 200 { items: [{ id, stockRestante }] } · 409 con los ids en el mensaje.
+// PROPUESTO (aún no en Catálogo): con "referencia", repetir la misma no descuenta otra vez.
+app.post('/api/catalogo/productos/descontar-stock', (req, res) => {
   const { referencia, items } = req.body || {};
-  if (typeof referencia !== 'string' || !Array.isArray(items) || items.length === 0
-    || items.some((i) => typeof i?.productId !== 'string' || !Number.isInteger(i.cantidad) || i.cantidad < 1)) {
-    return res.status(400).json({ codigo: 'VALIDACION_FALLIDA', mensaje: 'referencia e items son obligatorios' });
+  if (!Array.isArray(items) || items.length === 0
+    || items.some((i) => typeof i?.id !== 'string' || !Number.isInteger(i.cantidad) || i.cantidad < 1)) {
+    return res.status(400).json({ codigo: 'VALIDACION_FALLIDA', mensaje: 'items es obligatorio: [{ id, cantidad }]' });
   }
-  if (reservas[referencia]) return res.status(201).json({ reservaId: reservas[referencia].reservaId });
+  const respuesta = (its) => ({ items: its.map((i) => ({ id: i.id, stockRestante: productos[i.id].stock })) });
+  if (referencia && descuentos[referencia]) return res.json(respuesta(descuentos[referencia]));
 
-  const faltan = items.filter((i) => !productos[i.productId] || !productos[i.productId].activo
-    || productos[i.productId].stock < i.cantidad)
-    .map((i) => ({ productId: i.productId, cantidad: i.cantidad, stock: productos[i.productId]?.stock ?? 0 }));
+  const faltan = items.filter((i) => !productos[i.id] || productos[i.id].stock < i.cantidad).map((i) => i.id);
   if (faltan.length) {
-    return res.status(409).json({ codigo: 'STOCK_INSUFICIENTE', mensaje: 'Stock insuficiente', items: faltan });
+    return res.status(409).json({ codigo: 'STOCK_INSUFICIENTE', mensaje: `Stock insuficiente para: ${faltan.join(', ')}` });
   }
-
-  items.forEach((i) => { productos[i.productId].stock -= i.cantidad; });
-  const reservaId = `res_${siguienteReserva++}`;
-  reservas[referencia] = { reservaId, items };
-  res.status(201).json({ reservaId });
+  items.forEach((i) => { productos[i.id].stock -= i.cantidad; });
+  if (referencia) descuentos[referencia] = items;
+  res.json(respuesta(items));
 });
 
-// HU-10: liberar una reserva (devuelve el stock). Idempotente: 204 aunque no exista.
-app.delete('/api/catalogo/reservas/:reservaId', (req, res) => {
-  const ref = Object.keys(reservas).find((r) => reservas[r].reservaId === req.params.reservaId);
-  if (ref) {
-    reservas[ref].items.forEach((i) => { productos[i.productId].stock += i.cantidad; });
-    delete reservas[ref];
+// PROPUESTO (aún no en Catálogo): devolver el stock de una referencia. Idempotente.
+app.post('/api/catalogo/productos/devolver-stock', (req, res) => {
+  const { referencia } = req.body || {};
+  const items = descuentos[referencia];
+  if (items) {
+    items.forEach((i) => { productos[i.id].stock += i.cantidad; });
+    delete descuentos[referencia];
   }
   res.sendStatus(204);
 });
