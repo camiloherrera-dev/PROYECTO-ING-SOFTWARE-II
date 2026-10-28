@@ -21,7 +21,7 @@ Este documento describe el contrato REST del Carrito al final del Sprint 3: los 
 | Errores nuevos | `CARRITO_VACIO`, `CARRITO_NO_DISPONIBLE`, `CHECKOUT_NO_ENCONTRADO`, `CHECKOUT_REEMPLAZADO`, `CHECKOUT_EXPIRADO`, `CONFIRMACION_EN_CURSO`, `STOCK_INSUFICIENTE` (sección 5) |
 | Formato de error | Los 409 de checkout y de stock agregan `items` con los productos que fallaron |
 | Modelo Redis | `checkout:{id}`, `checkout-usuario:{userId}`, `pedido:{id}`, `pedidos-usuario:{userId}` (sección 8) |
-| Catálogo | `stock` en el producto; `POST` y `DELETE /api/catalogo/reservas` (sección 7) |
+| Catálogo | `stock` en el producto; `POST /productos/descontar-stock` (acordado) y `devolver-stock` (propuesto); `CATALOG_BASE_URL` incluye el prefijo (sección 7) |
 | Alcance | Sin pago real: el pedido nace `CONFIRMADO` |
 
 Los cinco endpoints del Sprint 2 y la respuesta del carrito (sección 4) no cambian, así que un cliente de la v1.2 sigue funcionando.
@@ -42,7 +42,7 @@ Los cinco endpoints del Sprint 2 y la respuesta del carrito (sección 4) no camb
 
 ## 1. Alcance
 
-El Carrito permite a un cliente autenticado agregar, consultar, modificar, eliminar y vaciar los productos de su carrito, con el subtotal, los descuentos aplicados y el total en cada respuesta. Desde la v1.3 también permite pasar del carrito a un pedido confirmado: verificar disponibilidad, congelar un resumen de compra y confirmarlo reservando el stock en Catálogo.
+El Carrito permite a un cliente autenticado agregar, consultar, modificar, eliminar y vaciar los productos de su carrito, con el subtotal, los descuentos aplicados y el total en cada respuesta. Desde la v1.3 también permite pasar del carrito a un pedido confirmado: verificar disponibilidad, congelar un resumen de compra y confirmarlo descontando el stock en Catálogo.
 
 Fuera de este contrato: pago real (el pedido nace `CONFIRMADO` sin cobro), histórico de pedidos en PostgreSQL y recuperación del carrito abandonado (HU-11, HU-12, Sprint 4), eventos RabbitMQ (solo si otro equipo los pide), Keycloak real, cupones y descuentos por categoría.
 
@@ -122,7 +122,7 @@ Las respuestas `2xx` de los cinco primeros endpoints devuelven el carrito comple
 - Revalida precio, estado y stock de cada ítem contra Catálogo. No modifica cantidades.
 - Cada ítem queda en un estado: `OK`, `SIN_STOCK` (stock menor que la cantidad), `INACTIVO` (inactivo o 404 en Catálogo) o `PRECIO_CAMBIO`.
 - `PRECIO_CAMBIO` actualiza el precio en Redis (como el GET) e informa `precioAnterior`. Deja `disponible: false` a propósito: el cliente ve el precio nuevo antes de pagar, y la segunda verificación ya responde `OK`.
-- Si Catálogo no envía `stock` (`null`), el ítem no se marca `SIN_STOCK`; la reserva de la confirmación es la que protege.
+- Si Catálogo no envía `stock` (`null`), el ítem no se marca `SIN_STOCK`; el descuento de stock de la confirmación es el que protege.
 - Carrito vacío → `400 CARRITO_VACIO`. Catálogo caído → `503` sin escrituras en Redis.
 
 ### 3.7 POST /api/carrito/checkout — Crear checkout (nuevo, HU-08)
@@ -137,14 +137,14 @@ Las respuestas `2xx` de los cinco primeros endpoints devuelven el carrito comple
 ### 3.8 POST /api/carrito/checkout/{checkoutId}/confirmar — Confirmar pedido (nuevo, HU-10)
 
 - Solo el dueño del checkout puede confirmarlo. Un `checkoutId` inexistente o de otro usuario responde `404 CHECKOUT_NO_ENCONTRADO`.
-- Confirma lo que el cliente vio: reserva en Catálogo las cantidades del snapshot y crea el pedido con sus precios y descuentos, sin recalcular.
-- Al confirmar: se reserva el stock, se guarda el pedido, el checkout pasa a `CONFIRMADO` y se vacía el carrito. Responde `201` con la forma de la sección 4.5.
-- **Idempotente:** repetir con el mismo `checkoutId` responde `200` con el mismo pedido, sin reservar otra vez.
+- Confirma lo que el cliente vio: descuenta en Catálogo las cantidades del snapshot y crea el pedido con sus precios y descuentos, sin recalcular.
+- Al confirmar: se descuenta el stock, se guarda el pedido, el checkout pasa a `CONFIRMADO` y se vacía el carrito. Responde `201` con la forma de la sección 4.5.
+- **Idempotente:** repetir con el mismo `checkoutId` responde `200` con el mismo pedido, sin descontar stock otra vez.
 - Un checkout reemplazado por uno más nuevo → `409 CHECKOUT_REEMPLAZADO`. Así un usuario no puede crear dos pedidos con dos resúmenes.
 - Después de `expiraEn` → `409 CHECKOUT_EXPIRADO`; el cliente vuelve a iniciar el pago.
 - Si otra petición está confirmando el mismo checkout en ese momento → `409 CONFIRMACION_EN_CURSO`.
-- Catálogo rechaza la reserva → `409 STOCK_INSUFICIENTE` con los productos que fallaron; el checkout vuelve a `PENDIENTE` y se puede reintentar.
-- Ningún fallo deja stock reservado sin pedido: si guardar el pedido falla después de reservar, se libera la reserva.
+- Catálogo rechaza el descuento → `409 STOCK_INSUFICIENTE` con los productos que fallaron; el checkout vuelve a `PENDIENTE` y se puede reintentar.
+- Si guardar el pedido falla después de descontar, se pide a Catálogo devolver el stock (`devolver-stock`, propuesto; ver sección 7.2). Mientras Catálogo no lo exponga, el fallo queda en el log para devolverlo a mano.
 - Vaciar el carrito borra también lo que el cliente agregó después del checkout. Un fallo al vaciarlo no deshace el pedido.
 
 ## 4. Respuestas
@@ -265,7 +265,7 @@ La respuesta del carrito de la sección 4.1 más `checkoutId`, `estado` y `expir
   "userId": "usr_demo",
   "estado": "CONFIRMADO",
   "creadoEn": "2026-11-05T15:21:10.000Z",
-  "reservaId": "res_1",
+  "reservaId": "chk_7f3a9c21-...",
   "items": [ "..." ],
   "subtotal": 409500, "descuentoTotal": 66488, "total": 343012
 }
@@ -277,7 +277,7 @@ La respuesta del carrito de la sección 4.1 más `checkoutId`, `estado` y `expir
 | `checkoutId` | Checkout del que nace; la misma confirmación repetida devuelve el mismo pedido |
 | `estado` | Siempre `CONFIRMADO` en este sprint (sin pago real) |
 | `creadoEn` | Momento de la confirmación |
-| `reservaId` | Reserva de stock que devolvió Catálogo |
+| `reservaId` | Referencia con la que se descontó el stock en Catálogo. Hoy es el mismo `checkoutId`, porque Catálogo no devuelve un id propio |
 | `items`, `subtotal`, `descuentoTotal`, `total` | Copiados del snapshot: el cliente paga lo que vio |
 
 ## 5. Errores
@@ -306,7 +306,7 @@ Los 409 `CARRITO_NO_DISPONIBLE` y `STOCK_INSUFICIENTE` agregan `items` con los p
 | 409 | `CHECKOUT_REEMPLAZADO` (nuevo) | Se creó un checkout más nuevo; el viejo ya no se puede confirmar |
 | 409 | `CHECKOUT_EXPIRADO` (nuevo) | Confirmar después de `expiraEn` (15 min) |
 | 409 | `CONFIRMACION_EN_CURSO` (nuevo) | Otra petición está confirmando el mismo checkout |
-| 409 | `STOCK_INSUFICIENTE` (nuevo) | Catálogo rechazó la reserva; trae `items` |
+| 409 | `STOCK_INSUFICIENTE` (nuevo) | Catálogo rechazó el descuento de stock; trae `items` |
 | 503 | `CATALOGO_NO_DISPONIBLE` | Catálogo no responde, responde con error, excede el timeout o devuelve un formato inválido |
 | 500 | `ERROR_INTERNO` | Cualquier error no controlado. El mensaje es genérico y no expone detalles internos |
 
@@ -339,50 +339,60 @@ Si el Módulo Descuentos lanza un error o tarda más de `DISCOUNT_TIMEOUT_MS` (2
 
 ## 7. Integración con Catálogo
 
-El Carrito consume tres endpoints de Catálogo. Cualquier ajuste a la forma real se limita a `src/clients/catalogClient.js` y al mock de `mocks/catalog-mock/`.
+Acuerdo con el equipo de Catálogo del 27/10/2026. Catálogo **no tiene reservas**: confirmar un pedido descuenta el stock de forma definitiva. Cualquier ajuste a la forma real se limita a `src/clients/catalogClient.js` y al mock de `mocks/catalog-mock/`.
 
-| Endpoint de Catálogo | Uso | Respuesta esperada |
-| --- | --- | --- |
-| `GET {CATALOG_BASE_URL}/api/catalogo/productos/{id}` | Precio, nombre y estado (todas las HU); `stock` (HU-09) | `200 { id, nombre, precio, activo, stock }` · `404` |
-| `POST {CATALOG_BASE_URL}/api/catalogo/reservas` (nuevo) | HU-10: reservar el stock del pedido | `201 { reservaId }` · `409 { codigo: "STOCK_INSUFICIENTE", items }` |
-| `DELETE {CATALOG_BASE_URL}/api/catalogo/reservas/{reservaId}` (nuevo) | HU-10: liberar la reserva si falla guardar el pedido | `204` (también si no existe) |
+`CATALOG_BASE_URL` **incluye el prefijo**: `http://catalog-mock:4000/api/catalogo` (mock, por defecto en Docker Compose) o `http://host.docker.internal:8080` (Catálogo real directo, sin prefijo). Nuestro Kong y el de Catálogo usan los dos el puerto 8000, así que para integrar se usa el acceso directo.
 
-**Producto:**
+| Endpoint de Catálogo | Uso | Respuesta | Estado |
+| --- | --- | --- | --- |
+| `GET {CATALOG_BASE_URL}/productos/{id}` | Precio, nombre y estado (todas las HU); `stock` (HU-09) | `200 { id, nombre, precio, activo, stock, categoria, ... }` · `404` solo si el id no existe | Acordado |
+| `POST {CATALOG_BASE_URL}/productos/descontar-stock` | HU-10: descontar el stock del pedido, todo o nada | `200 { items: [{ id, stockRestante }] }` · `409 STOCK_INSUFICIENTE` con los ids en el `mensaje` | Acordado |
+| `POST {CATALOG_BASE_URL}/productos/devolver-stock` | HU-10: devolver el stock si falla guardar el pedido | `204` | **Propuesto**, aún no existe en Catálogo |
+
+**Producto.** Los ids reales son ObjectId de MongoDB (24 caracteres hexadecimales); el mock usa `prod_00X`.
 
 ```json
-{ "id": "prod_001", "nombre": "Camiseta básica algodón", "precio": 49900, "activo": true, "stock": 20 }
+{ "id": "prod_001", "nombre": "Camiseta básica algodón", "precio": 49900, "activo": true, "stock": 20, "categoria": "cat-ropa" }
 ```
 
-**Reserva (cuerpo del POST).** Es idempotente por `referencia`: repetir la misma referencia devuelve la misma reserva sin descontar stock otra vez. El Carrito usa el `checkoutId` como referencia.
+**Descontar stock (cuerpo del POST).** El Carrito envía el `checkoutId` como `referencia`. Catálogo la ignora hoy; si la acepta (propuesta), un reintento con la misma referencia no descontará dos veces. El mock ya implementa la propuesta.
 
 ```json
-{ "referencia": "chk_7f3a9c21-...", "items": [{ "productId": "prod_001", "cantidad": 3 }, { "productId": "prod_002", "cantidad": 2 }] }
+{ "referencia": "chk_7f3a9c21-...", "items": [{ "id": "prod_001", "cantidad": 3 }, { "id": "prod_002", "cantidad": 2 }] }
 ```
 
 | Respuesta de Catálogo | Interpretación en el Carrito |
 | --- | --- |
 | Producto `200` con `activo: true` | Producto válido; se usan `nombre`, `precio` y `stock` |
 | Producto `200` con `activo: false`, o `404` | Inactivo: POST → `404`; GET → `disponible: false`; disponibilidad → `INACTIVO` |
-| Producto sin `stock` | `stock: null`: no rompe GET ni POST; la reserva es la que protege |
-| Reserva `201` | Se guarda el `reservaId` en el pedido |
-| Reserva `409` | `409 STOCK_INSUFICIENTE` con los `items` que manda Catálogo |
+| Producto sin `stock` | `stock: null`: no rompe GET ni POST; el descuento de stock de HU-10 es el que protege |
+| Descontar `200` | El pedido guarda la `referencia` (el `checkoutId`) en `reservaId`; Catálogo no devuelve un id propio |
+| Descontar `409` | `409 STOCK_INSUFICIENTE`. `items` = los productos del pedido cuyo id aparece en el `mensaje` (o los `items` del cuerpo, si Catálogo algún día los envía) |
 | Otro código, timeout (`CATALOG_TIMEOUT_MS`, 3000 ms), error de red o JSON con otro esquema | `503 CATALOGO_NO_DISPONIBLE` |
-| Fallo al liberar una reserva | Se registra en el log y no se propaga al cliente |
+| Fallo al devolver stock | Se registra en el log para devolverlo a mano en Catálogo; no se propaga al cliente |
 
-### 7.1 Acuerdos con Catálogo (POR CONFIRMAR — Juan David)
+### 7.1 Acuerdos con Catálogo
 
-| # | Punto | Supuesto actual del Carrito | Estado |
-| --- | --- | --- | --- |
-| 1 | Nombres de campo y tipo del precio | `{ id, nombre, precio, activo }`, precio entero en COP | POR CONFIRMAR |
-| 2 | Producto inactivo: `404` o `200` con `activo: false` | Se soportan ambos | POR CONFIRMAR |
-| 3 | Campo `stock` en el producto | Entero ≥ 0, opcional | POR CONFIRMAR |
-| 4 | `POST` y `DELETE /api/catalogo/reservas`, idempotente por `referencia` | Como en esta sección; el mock lo implementa | POR CONFIRMAR. Si no está antes del 05/11, HU-10 se demuestra contra el mock y la reserva real pasa al Sprint 4 |
-| 5 | ¿Las reservas vencen solas en Catálogo? ¿En cuánto tiempo? | No se asume vencimiento | POR CONFIRMAR |
-| 6 | ¿Catálogo expone `categoria`? | No se usa; habilitaría descuentos por categoría en un sprint futuro | POR CONFIRMAR |
-| 7 | URL base, puerto y quién opera el Kong compartido | `http://catalog-mock:4000` en Docker Compose | POR CONFIRMAR |
-| 8 | Claim del JWT y secreto de pruebas común | Usuario en `sub`; HS256 con `JWT_SECRET` | POR CONFIRMAR |
+| # | Tema | Acuerdo (27/10/2026) |
+| --- | --- | --- |
+| 1 | Producto | `{ id, nombre, precio, activo, stock, categoria, ... }`; ids ObjectId de MongoDB |
+| 2 | Producto inactivo | `200` con `activo: false`; el `404` es solo para un id que no existe |
+| 3 | Stock | Entero ≥ 0, ya disponible |
+| 4 | Categoría | Viene el id (por ejemplo `cat-ropa`); los nombres salen de `GET /categorias`. Falta confirmar el nombre exacto del campo |
+| 5 | Descontar stock | `POST /productos/descontar-stock`, todo o nada |
+| 6 | Reservas | No existen: el descuento es definitivo y no vence |
+| 7 | Token | Ningún endpoint de Catálogo valida token (Keycloak no está integrado en esta entrega) |
+| 8 | URL | Por su Kong: `http://localhost:8000/api/catalogo`. Directo: `http://localhost:8080`, sin prefijo. Cada equipo levanta su propio Kong |
 
-Las respuestas de Catálogo y Búsqueda se registran en el README del proyecto y en la siguiente versión de este contrato.
+### 7.2 Propuesto a Catálogo, pendiente de respuesta
+
+| # | Propuesta | Por qué |
+| --- | --- | --- |
+| 1 | `referencia` opcional (el `checkoutId`) en `descontar-stock`, idempotente | Que un reintento no descuente dos veces. El Carrito ya la envía |
+| 2 | `POST /productos/devolver-stock` con `{ referencia }` | Devolver el stock si falla guardar el pedido. Mientras no exista, el fallo queda en el log para devolverlo a mano |
+| 3 | Que el `409` traiga `items` en el cuerpo | No depender de leer los ids en el `mensaje`. El Carrito ya los usa si llegan |
+
+> **Riesgo conocido** hasta que exista la `referencia`: si la respuesta de Catálogo llega después de nuestro timeout, el Carrito responde `503`, el checkout vuelve a `PENDIENTE`, y un reintento del cliente descontaría el stock dos veces.
 
 ## 8. Persistencia (referencia para otros equipos)
 
@@ -411,8 +421,8 @@ La clave del checkout dura más que su vigencia para poder responder confirmacio
 | `PORT` | `3000` | Puerto interno del servicio |
 | `REDIS_URL` | `redis://localhost:6379` | Conexión a Redis |
 | `CART_TTL_SECONDS` | `604800` | TTL del carrito (7 días) |
-| `CATALOG_BASE_URL` | `http://localhost:4000` | URL base de Catálogo |
-| `CATALOG_TIMEOUT_MS` | `3000` | Timeout de cada llamada a Catálogo (productos y reservas) |
+| `CATALOG_BASE_URL` | `http://localhost:4000/api/catalogo` | URL base de Catálogo, **con** el prefijo (ver sección 7) |
+| `CATALOG_TIMEOUT_MS` | `3000` | Timeout de cada llamada a Catálogo (productos y stock) |
 | `DISCOUNT_TIMEOUT_MS` | `200` | Tiempo máximo del Módulo Descuentos antes de responder sin descuentos |
 | `CHECKOUT_TTL_SECONDS` (nuevo) | `86400` | Vida de la clave del checkout en Redis (24 h) |
 | `CHECKOUT_VIGENCIA_SECONDS` (nuevo) | `900` | Vigencia del checkout para confirmar (15 min) |
@@ -425,7 +435,8 @@ La clave del checkout dura más que su vigencia para poder responder confirmacio
 - Siguen las del Sprint 2: precio oficial de Catálogo, POST suma, PUT reemplaza, Descuentos nunca bloquea el carrito.
 - La compra va en tres pasos separados: verificar (HU-09), congelar un resumen (HU-08) y confirmar (HU-10). El cliente ve el total final antes de comprometer stock.
 - Disponibilidad no modifica cantidades. `PRECIO_CAMBIO` deja `disponible: false` a propósito.
-- `stock: null` se deja pasar; la reserva de HU-10 es la que protege.
+- `stock: null` se deja pasar; el descuento de stock de HU-10 es el que protege.
+- El descuento de stock en Catálogo es definitivo: no hay reservas que venzan.
 - El snapshot congela precios y descuentos: confirmar cobra lo que el cliente vio.
 - Un checkout vigente por usuario: uno nuevo reemplaza al anterior.
 - Confirmar es idempotente: repetir con el mismo `checkoutId` responde `200` con el mismo pedido.
