@@ -16,7 +16,7 @@ services:
     env_file: [.env]
     environment:
       REDIS_URL: redis://redis:6379
-      CATALOG_BASE_URL: http://catalog-mock:4000
+      CATALOG_BASE_URL: http://catalog-mock:4000/api/catalogo
     volumes:
       - .:/app
       - /app/node_modules
