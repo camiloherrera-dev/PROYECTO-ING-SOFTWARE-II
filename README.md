@@ -124,13 +124,27 @@ Se documentan cuando entre el Módulo Descuentos (HU-06/HU-07, `src/discounts/`)
 
 ## Acuerdos con Catálogo
 
-Pendientes de confirmar con el equipo de Catálogo (responsable: Juan David):
+Respuesta del equipo de Catálogo del 27/10/2026 (responsable en Carrito: Juan David).
 
-- Forma exacta de `GET /api/catalogo/productos/{id}` (nombres de campo y tipo del precio).
-- Si un producto inactivo responde 404 o 200 con `activo: false` (el cliente soporta ambos).
-- Si Catálogo expone `categoria`.
-- URL base, puerto y quién opera el Kong compartido.
-- Claim del JWT (`sub`) y secreto de pruebas común.
-- Reserva de stock (bloquea HU-09 en el Sprint 3).
+| Tema | Acuerdo |
+| --- | --- |
+| Producto | `GET /productos/{id}` → `{ id, nombre, precio, activo, stock, categoria, ... }`. Los ids son ObjectId de MongoDB (24 caracteres hexadecimales) |
+| Stock | Entero ≥ 0, ya disponible |
+| Inactivo | 200 con `activo: false`; el 404 es solo para un id que no existe |
+| Categoría | Viene el id (por ejemplo `cat-ropa`); los nombres salen de `GET /categorias`. Falta confirmar el nombre exacto del campo |
+| Descontar stock | `POST /productos/descontar-stock` con `{ items: [{ id, cantidad }] }` → 200 `{ items: [{ id, stockRestante }] }` · 409 `STOCK_INSUFICIENTE` con los ids en el mensaje. Todo o nada |
+| Reservas | No existen: el descuento es definitivo y no vence |
+| Token | Ningún endpoint de Catálogo valida token (Keycloak no está integrado en esta entrega) |
+| URL | Por su Kong: `http://localhost:8000/api/catalogo`. Directo: `http://localhost:8080`, sin el prefijo. Por ahora cada equipo levanta su propio Kong |
+
+**Configuración:** `CATALOG_BASE_URL` incluye el prefijo. Mock: `http://catalog-mock:4000/api/catalogo` (por defecto en `docker-compose.yml`). Catálogo real directo desde Docker: `http://host.docker.internal:8080`. Nuestro Kong y el de Catálogo usan los dos el puerto 8000, así que para integrar se usa el acceso directo.
+
+**Propuesto a Catálogo, pendiente de respuesta:**
+
+- `referencia` opcional (el `checkoutId`) en `descontar-stock`, para que un reintento no descuente dos veces. El cliente ya la envía.
+- `POST /productos/devolver-stock` con `{ referencia }`, para devolver el stock si falla guardar el pedido. Mientras no exista, el fallo queda en consola para devolverlo a mano.
+- Que el 409 traiga también `items` en el cuerpo. El cliente ya lo usa si llega.
+
+**Riesgo conocido** hasta que exista la `referencia`: si la respuesta de Catálogo llega después de nuestro timeout, el carrito responde 503 y un reintento del cliente descontaría el stock dos veces. El mock ya implementa la propuesta completa.
 
 El historial de la integración del Sprint 1 está en `docs/historico/INTEGRACION-EQUIPO.md`.
