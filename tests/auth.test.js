@@ -60,3 +60,13 @@ test('ruta inexistente responde 404 RUTA_NO_ENCONTRADA', async () => {
   expect(res.status).toBe(404);
   expect(res.body).toEqual({ codigo: 'RUTA_NO_ENCONTRADA', mensaje: 'Ruta no encontrada' });
 });
+
+test('token válido pero sin claim sub responde 401', async () => {
+  const jwt = require('jsonwebtoken');
+  const { jwtSecret } = require('../src/config/env');
+  const app = createApp((req, res) => res.json({ userId: req.userId }));
+  const sinSub = jwt.sign({ nombre: 'x' }, jwtSecret);
+  const res = await request(app).get('/api/carrito').set('Authorization', `Bearer ${sinSub}`);
+  expect(res.status).toBe(401);
+  expect(res.body.codigo).toBe('NO_AUTORIZADO');
+});
