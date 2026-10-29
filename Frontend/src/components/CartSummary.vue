@@ -1,33 +1,39 @@
 <script setup>
+import { computed } from 'vue';
 import { useCartStore } from '../stores/cartStore';
 import { money } from '../utils/money';
+
+// Sprint 3: sin prop muestra el carrito; con :resumen muestra el snapshot del checkout
+const props = defineProps({ resumen: { type: Object, default: null } });
 const cart = useCartStore();
+const r = computed(() => props.resumen || cart.cart);
+const descuentoCarrito = computed(() => (r.value.descuentosAplicados || []).find((d) => d.productId === null) || null);
 </script>
 
 <template>
   <aside class="resumen">
-    <p v-if="!cart.cart.descuentosDisponibles" class="aviso" role="status">
+    <p v-if="!r.descuentosDisponibles" class="aviso" role="status">
       Los descuentos no están disponibles en este momento. Se muestra el precio sin descuentos.
     </p>
     <dl>
       <dt>Subtotal</dt>
-      <dd>{{ money(cart.cart.subtotal) }}</dd>
+      <dd>{{ money(r.subtotal) }}</dd>
 
-      <template v-if="cart.cart.descuentoItems > 0">
+      <template v-if="r.descuentoItems > 0">
         <dt>Descuentos en productos</dt>
-        <dd class="desc">− {{ money(cart.cart.descuentoItems) }}</dd>
+        <dd class="desc">− {{ money(r.descuentoItems) }}</dd>
       </template>
 
-      <template v-if="cart.descuentoCarrito">
-        <dt>{{ cart.descuentoCarrito.descripcion }}</dt>
-        <dd class="desc">− {{ money(cart.descuentoCarrito.monto) }}</dd>
+      <template v-if="descuentoCarrito">
+        <dt>{{ descuentoCarrito.descripcion }}</dt>
+        <dd class="desc">− {{ money(descuentoCarrito.monto) }}</dd>
       </template>
 
       <dt>Total descuentos</dt>
-      <dd class="desc">− {{ money(cart.cart.descuentoTotal) }}</dd>
+      <dd class="desc">− {{ money(r.descuentoTotal) }}</dd>
 
       <dt class="total">Total</dt>
-      <dd class="total">{{ money(cart.cart.total) }}</dd>
+      <dd class="total">{{ money(r.total) }}</dd>
     </dl>
   </aside>
 </template>
