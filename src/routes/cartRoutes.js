@@ -11,6 +11,7 @@ router.use(authJwt); // RT-01: antes de cualquier ruta
 router.get('/', ctrl.getCart); // HU-02 (Camilo)
 router.post('/items', ctrl.addItem); // HU-01 (Jeisson)
 router.put('/items/:productId', ctrl.updateItem); // HU-03
+router.get('/disponibilidad', ctrl.checkAvailability); // HU-09 (Jose David)
 
 // HU-04 Eliminar producto (Santiago)
 router.delete('/items/:productId', async (req, res, next) => {
