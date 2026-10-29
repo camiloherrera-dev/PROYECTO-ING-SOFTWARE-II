@@ -1,4 +1,5 @@
 const cartService = require('../services/cartService');
+const availabilityService = require('../services/availabilityService');
 
 // RNF-02: el userId SIEMPRE viene de req.userId (lo pone authJwt desde el token).
 // Nunca se lee de req.body, req.query ni req.params.
@@ -20,6 +21,11 @@ module.exports = {
     const { productId, cantidad } = req.body || {};
     const { created, cart } = await cartService.addItem(req.userId, productId, cantidad);
     res.status(created ? 201 : 200).json(cart); // 201 = primera vez, 200 = ya existía
+  }),
+
+  // HU-09 (Jose David): verificar disponibilidad
+  checkAvailability: handle(async (req, res) => {
+    res.status(200).json(await availabilityService.checkAvailability(req.userId));
   }),
 
   // removeItem y clearCart: Santiago
