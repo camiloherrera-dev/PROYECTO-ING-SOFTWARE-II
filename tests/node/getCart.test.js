@@ -21,7 +21,17 @@ function fixture(items, lookup = async () => product()) {
 
 test('carrito vacío tiene totales cero y no consulta Catálogo', async () => {
   const f = fixture([]);
-  assert.deepEqual(await f.getCart('u1'), { userId: 'u1', items: [], subtotal: 0, descuentoTotal: 0, total: 0 });
+  assert.deepEqual(await f.getCart('u1'), {
+    userId: 'u1',
+    items: [],
+    subtotal: 0,
+    descuentoItems: 0,
+    descuentoCarrito: 0,
+    descuentoTotal: 0,
+    total: 0,
+    descuentosAplicados: [],
+    descuentosDisponibles: true,
+  });
   assert.deepEqual(f.calls, []);
 });
 
