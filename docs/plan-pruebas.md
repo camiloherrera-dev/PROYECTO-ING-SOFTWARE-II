@@ -146,3 +146,34 @@ docker exec -it carrito_redis redis-cli TTL carrito:<userId>       # TC-23: ~604
 | Repositorio Redis y POST /items | Jeisson | TC-01 a TC-09, TC-22, TC-23 |
 | Cliente de Catálogo y GET /carrito | Camilo | TC-08 a TC-12 |
 | Claim del JWT y secreto compartido (pendiente de acordar con Catálogo) | Jose David / Juan David | Generación de tokens en la colección |
+
+## 9. Sprint 3 — Flujo de compra (HU-08, HU-09, HU-10)
+
+Plan añadido para cubrir disponibilidad, checkout, confirmación del pedido y persistencia. Los casos dependientes de los endpoints de Sprint 3 se ejecutan cuando sus cambios estén integrados en `develop`.
+
+| ID | HU | Prueba | Resultado esperado | Tipo | Resultado | Evidencia / Bug |
+|---|---|---|---|---|---|---|
+| TC-43 | HU-09 | Carrito con productos en stock | 200; `disponible: true`; todos los ítems en `OK` | Automática | | |
+| TC-44 | HU-09 | Bajar stock del jean a 1 con 2 en el carrito | `SIN_STOCK`; `disponible: false` | Automática | | |
+| TC-45 | HU-09 | Desactivar un producto en el mock | Estado `INACTIVO` | Automática | | |
+| TC-46 | HU-09 | Cambiar precio del producto y consultar dos veces | Primera consulta `PRECIO_CAMBIO` con `precioAnterior`; segunda consulta `OK` | Automática | | |
+| TC-47 | HU-09 | Consultar disponibilidad con carrito vacío | 400 `CARRITO_VACIO` | Automática | | |
+| TC-48 | HU-08 | Checkout con 3 camisetas y 2 jeans disponibles | 201 con `checkoutId`, `expiraEn` y total 343.012 | Automática | | |
+| TC-49 | HU-08 | Crear checkout con un ítem sin stock | 409 `CARRITO_NO_DISPONIBLE` con `items` | Automática | | |
+| TC-50 | HU-08/HU-10 | Cambiar el carrito después del checkout y confirmar | El pedido usa los datos del snapshot | Automática | | |
+| TC-51 | HU-10 | Confirmar checkout | 201, pedido `CONFIRMADO`, carrito vacío y stock reducido | Automática | | |
+| TC-52 | HU-10 | Confirmar dos veces | Segunda respuesta 200 con el mismo `pedidoId`; stock reducido una sola vez | Automática | | |
+| TC-53 | HU-10 | Confirmar checkout vencido (`CHECKOUT_VIGENCIA_SECONDS=30`) | 409 `CHECKOUT_EXPIRADO` | Manual / entorno configurado | | |
+| TC-54 | HU-10 | Confirmar checkout de otro usuario | 404 `CHECKOUT_NO_ENCONTRADO` | Automática | | |
+| TC-55 | HU-10 | Agotar stock entre checkout y confirmación; reponerlo y reintentar | 409 `STOCK_INSUFICIENTE`; reintento con stock disponible responde 201 | Automática | | |
+| TC-56 | Todas | Llamar endpoints nuevos sin token | 401 `NO_AUTORIZADO` | Automática | | |
+| TC-57 | HU-10 | Inspeccionar checkout y pedido en Redis | Checkout `CONFIRMADO`; TTL checkout cercano a 24 h y pedido cercano a 30 días | Manual / Redis | | |
+| TC-58 | HU-10 | Crear dos checkouts y confirmar el primero | 409 `CHECKOUT_REEMPLAZADO`; no se crea pedido | Automática | | |
+
+### Preparación y ejecución de Sprint 3
+
+- Ejecutar TC-43 a TC-58 por Kong en el orden disponibilidad → checkout → confirmación. La colección usa un usuario aislado y guarda `checkoutId`/`pedidoId` para los pasos posteriores.
+- Para TC-44, TC-45, TC-46 y TC-55, modificar el mock con `PATCH http://localhost:4000/__test/productos/{productId}` y restaurar stock, precio y estado al finalizar cada caso.
+- TC-53 requiere levantar el servicio con `CHECKOUT_VIGENCIA_SECONDS=30`, crear un checkout, esperar más de 30 segundos y luego confirmarlo.
+- Para TC-57, usar `docker exec carrito_redis redis-cli --scan --pattern 'checkout:*'`, consultar el campo `estado` del hash de checkout y revisar el TTL de `pedido:{pedidoId}`.
+- Registrar los resultados y evidencia junto con la regresión final. La revisión final cubre TC-01 a TC-58 y `npm run e2e -- --pedido` después de integrar todas las historias.
