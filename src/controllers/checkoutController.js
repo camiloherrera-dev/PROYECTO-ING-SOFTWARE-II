@@ -17,5 +17,8 @@ module.exports = {
   createCheckout: handle(async (req, res) => { // HU-08 (Santiago)
     res.status(201).json(await checkoutService.createCheckout(req.userId));
   }),
-  // confirmCheckout: Camilo (HU-10)
+  confirmCheckout: handle(async (req, res) => { // HU-10 (Camilo)
+    const { pedido, creado } = await checkoutService.confirmCheckout(req.userId, req.params.checkoutId);
+    res.status(creado ? 201 : 200).json(pedido); // 201 = pedido nuevo, 200 = ya estaba confirmado
+  }),
 };

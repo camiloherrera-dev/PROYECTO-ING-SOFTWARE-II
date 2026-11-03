@@ -15,5 +15,6 @@ router.delete('/items/:productId', ctrl.removeItem); // HU-04 (Santiago)
 
 router.get('/disponibilidad', checkoutCtrl.checkAvailability); // HU-09 (Jose David)
 router.post('/checkout', checkoutCtrl.createCheckout); // HU-08 (Santiago)
+router.post('/checkout/:checkoutId/confirmar', checkoutCtrl.confirmCheckout); // HU-10 (Camilo)
 
 module.exports = router;
