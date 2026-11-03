@@ -1,3 +1,6 @@
+// Sprint 3: sin reglas de descuento, para probar solo la lógica de esta HU
+jest.mock('../src/discounts/discountRules', () => ({ getActiveRules: async () => [] }));
+
 jest.mock('../src/repositories/cartRepository', () => ({
   getItem: jest.fn(),
   getAllItems: jest.fn(),

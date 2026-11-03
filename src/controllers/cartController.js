@@ -22,5 +22,10 @@ module.exports = {
     res.status(created ? 201 : 200).json(cart); // 201 = primera vez, 200 = ya existía
   }),
 
-  // removeItem y clearCart: Santiago
+  removeItem: handle(async (req, res) => { // HU-04 (Santiago, movido desde la ruta)
+    res.status(200).json(await cartService.removeItem(req.userId, req.params.productId));
+  }),
+  clearCart: handle(async (req, res) => { // HU-05 (Santiago, movido desde la ruta)
+    res.status(200).json(await cartService.clearCart(req.userId));
+  }),
 };
