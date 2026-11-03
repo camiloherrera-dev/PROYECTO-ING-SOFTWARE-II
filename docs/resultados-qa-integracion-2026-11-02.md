@@ -26,7 +26,7 @@ npm run e2e
 
 Resultado: **12/12 verificaciones pasan**. Se validaron autenticación sin token, vaciado idempotente, agregar y acumular ítems, rechazo de producto inactivo, consulta de total con descuentos, actualización de cantidad, validación de cantidad cero, eliminación de ítem, segundo DELETE y vaciado final.
 
-La aserción de consulta valida `total = 343012` y `descuentoTotal = 66488`. No comprueba por separado cada campo del desglose; por eso TC-32 y TC-35 se registran como parciales en la matriz.
+La aserción de consulta valida `total = 343012` y `descuentoTotal = 66488`, sin comprobar por separado cada campo del desglose. En la ejecución posterior de Postman, Sofía informó que TC-32 y TC-35 y los demás casos TC-26 a TC-39 dieron los resultados funcionales esperados; la matriz se actualizó con ese reporte.
 
 ## Verificación parcial de Sprint 3
 
@@ -70,3 +70,33 @@ La respuesta compartida para TC-48 confirma:
 - Total `343012`; descuentos disponibles y ambos productos disponibles.
 
 Por tanto, TC-44, TC-45, TC-47, TC-48 y TC-49 quedan registrados como **Pasa** en la matriz. TC-43 y TC-46 permanecen como **Falla**, respaldados por las capturas compartidas: el primero mostró Test Results `1/2` y el segundo `0/1`.
+
+## Resultados Postman comunicados el 3 de noviembre de 2026 — Sprint 2
+
+Sofía informó que ejecutó en Postman la regresión TC-24 a TC-39 y que los casos dieron el resultado esperado. Tres aserciones aparecieron rojas en escenarios negativos, pero las respuestas recibidas coincidieron con los cuerpos de error definidos; por ello se registran como **Pasa (error esperado)**:
+
+| Caso | Respuesta observada | Registro |
+|---|---|---|
+| TC-26 | `PRODUCTO_NO_ENCONTRADO` — “El producto no está en el carrito” | Pasa (error esperado). El código HTTP no fue compartido. |
+| TC-27 | `NO_AUTORIZADO` — “Token no proporcionado” | Pasa (error esperado). El código HTTP no fue compartido. |
+| TC-31 | `NO_AUTORIZADO` — “Token no proporcionado” | Pasa (error esperado), según confirmación de Sofía. |
+
+TC-32 a TC-39 quedan registrados como **Pasa**, según el reporte de ejecución de Sofía; no se compartieron capturas ni valores individuales de sus respuestas. Los estados quedan reflejados en la matriz de `docs/plan-pruebas.md`.
+
+## Actualización de HU-10 en `develop` — 3 de noviembre de 2026
+
+Después de la ejecución anterior, se integró la PR #37 (`ae649e9`, que incluye `39520f7`) en `develop`. La rama ya contiene `POST /api/carrito/checkout/:checkoutId/confirmar` y la lógica HU-10 para confirmar el checkout. Los 404 anotados en la sección de verificación parcial corresponden a la revisión previa a este merge, por lo que no describen el estado actual del código.
+
+Al integrarse HU-10, TC-50 a TC-58 quedaron pendientes de reejecución. En la ejecución posterior de Postman del 3 de noviembre, Sofía confirmó que **todos pasaron** en el entorno reconstruido desde `develop` (`ae649e9`). Los resultados negativos requeridos por los casos se consideran aprobados cuando coinciden con el resultado esperado:
+
+| Caso(s) | Resultado esperado que se valida | Registro |
+|---|---|---|
+| TC-50 a TC-52 | Snapshot respetado; primera confirmación crea pedido; segunda confirmación es idempotente. | Pasa, según reporte de Sofía. |
+| TC-53 | 409 `CHECKOUT_EXPIRADO` después de vencer el checkout. | Pasa (error esperado), según reporte de Sofía. |
+| TC-54 | 404 `CHECKOUT_NO_ENCONTRADO` al confirmar con otro usuario. | Pasa (error esperado); captura Postman muestra 404 con ese código. |
+| TC-55 | 409 `STOCK_INSUFICIENTE` antes de reponer; la confirmación reintentada pasa con stock restaurado. | Pasa; captura muestra el 409 esperado y Sofía confirma el resultado del caso completo. |
+| TC-56 | 401 `NO_AUTORIZADO` en disponibilidad, checkout y confirmación sin token. | Pasa (errores esperados), según reporte de Sofía. |
+| TC-57 | Checkout confirmado y TTL esperado para checkout y pedido en Redis. | Pasa, según reporte de Sofía. |
+| TC-58 | 409 `CHECKOUT_REEMPLAZADO` para el checkout anterior; no se crea pedido. | Pasa (error esperado), según reporte de Sofía. |
+
+La matriz de `docs/plan-pruebas.md` refleja los estados. No se adjuntaron capturas de todos los casos; el detalle se registra con base en el reporte de ejecución de Sofía.
