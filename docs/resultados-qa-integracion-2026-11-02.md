@@ -42,7 +42,7 @@ Resultados relevantes:
 - Las 12 verificaciones del flujo Sprint 2 vuelven a pasar.
 - Disponibilidad devuelve 200 con `disponible: true`.
 - Crear checkout devuelve 201, `checkoutId` y total `343012`.
-- La aserción E2E no comprueba cada estado de ítem de TC-43 ni `expiraEn` de TC-48; ambos quedan parciales hasta revisar esos campos directamente.
+- La aserción de esa corrida E2E no comprueba cada estado de ítem de TC-43 ni `expiraEn` de TC-48. La ejecución Postman posterior completó la comprobación de TC-48; TC-43 se verificó directamente y falló por sus estados `INACTIVO`.
 - Confirmar el checkout y repetir la confirmación devuelven 404. La ruta de confirmación de HU-10 no está implementada en `develop`; el carrito sigue con 2 ítems y el stock no cambia. TC-51 y TC-52 quedan bloqueados. Los casos posteriores que dependen de confirmar pedido siguen pendientes.
 - La comprobación de checkout inexistente devuelve 404, pero no demuestra el comportamiento de HU-10 mientras falte la ruta.
 
@@ -58,3 +58,15 @@ Se usaron usuarios aislados `qa_tc43_sofia` y `qa_tc46_sofia`; al terminar, ambo
 | TC-46, cambiar precio de `prod_001` de 49900 a 59900 y consultar disponibilidad | Falla: la respuesta siguió mostrando `disponible: true` y `estado: "INACTIVO"`; no informó `PRECIO_CAMBIO` ni `precioAnterior`. Se restauró el precio a 49900. |
 
 Estos resultados requieren corrección del endpoint de disponibilidad antes de marcar TC-43 y TC-46 como aprobados.
+
+## Resultados Postman comunicados el 3 de noviembre de 2026
+
+Sofía ejecutó los grupos TC-44, TC-45, TC-47, TC-48 y TC-49 en la colección Postman e informó que sus aserciones dieron los resultados esperados. TC-44 y TC-49 restauraron el stock de `prod_002` a 10; TC-45 reactivó `prod_001`.
+
+La respuesta compartida para TC-48 confirma:
+
+- HTTP 201, `estado: PENDIENTE`, con `checkoutId` y `expiraEn`.
+- Subtotal `409500`; descuentos por ítem `48435`; descuento de carrito `18053`; descuentos totales `66488`.
+- Total `343012`; descuentos disponibles y ambos productos disponibles.
+
+Por tanto, TC-44, TC-45, TC-47, TC-48 y TC-49 quedan registrados como **Pasa** en la matriz. TC-43 y TC-46 permanecen como **Falla**, respaldados por las capturas compartidas: el primero mostró Test Results `1/2` y el segundo `0/1`.

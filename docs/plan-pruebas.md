@@ -154,12 +154,12 @@ Plan añadido para cubrir disponibilidad, checkout, confirmación del pedido y p
 | ID | HU | Prueba | Resultado esperado | Tipo | Resultado (Pasa/Falla/Parcial/Bloqueado) | Evidencia / Bug |
 |---|---|---|---|---|---|---|
 | TC-43 | HU-09 | Carrito con productos en stock | 200; `disponible: true`; todos los ítems en `OK` | Automática | Falla | `docs/resultados-qa-integracion-2026-11-02.md`: devuelve `disponible: true`, pero marca los dos productos activos con estado `INACTIVO`. |
-| TC-44 | HU-09 | Bajar stock del jean a 1 con 2 en el carrito | `SIN_STOCK`; `disponible: false` | Automática | | |
-| TC-45 | HU-09 | Desactivar un producto en el mock | Estado `INACTIVO` | Automática | | |
+| TC-44 | HU-09 | Bajar stock del jean a 1 con 2 en el carrito | `SIN_STOCK`; `disponible: false` | Automática | Pasa | `docs/resultados-qa-integracion-2026-11-02.md`: ejecución Postman reportada por Sofía el 2026-11-03; incluye restauración del stock. |
+| TC-45 | HU-09 | Desactivar un producto en el mock | Estado `INACTIVO` | Automática | Pasa | `docs/resultados-qa-integracion-2026-11-02.md`: ejecución Postman reportada por Sofía el 2026-11-03; producto reactivado al terminar. |
 | TC-46 | HU-09 | Cambiar precio del producto y consultar dos veces | Primera consulta `PRECIO_CAMBIO` con `precioAnterior`; segunda consulta `OK` | Automática | Falla | `docs/resultados-qa-integracion-2026-11-02.md`: no detecta el cambio de precio ni devuelve `PRECIO_CAMBIO`/`precioAnterior`. |
-| TC-47 | HU-09 | Consultar disponibilidad con carrito vacío | 400 `CARRITO_VACIO` | Automática | | |
-| TC-48 | HU-08 | Checkout con 3 camisetas y 2 jeans disponibles | 201 con `checkoutId`, `expiraEn` y total 343.012 | Automática | Parcial | `docs/resultados-qa-integracion-2026-11-02.md`: E2E valida 201, `checkoutId` y total; pendiente comprobar `expiraEn`. |
-| TC-49 | HU-08 | Crear checkout con un ítem sin stock | 409 `CARRITO_NO_DISPONIBLE` con `items` | Automática | | |
+| TC-47 | HU-09 | Consultar disponibilidad con carrito vacío | 400 `CARRITO_VACIO` | Automática | Pasa | `docs/resultados-qa-integracion-2026-11-02.md`: ejecución Postman reportada por Sofía el 2026-11-03. |
+| TC-48 | HU-08 | Checkout con 3 camisetas y 2 jeans disponibles | 201 con `checkoutId`, `expiraEn` y total 343.012 | Automática | Pasa | `docs/resultados-qa-integracion-2026-11-02.md`: respuesta Postman confirma `checkoutId`, `expiraEn`, 409500 subtotal, 66488 descuentos y 343012 total. |
+| TC-49 | HU-08 | Crear checkout con un ítem sin stock | 409 `CARRITO_NO_DISPONIBLE` con `items` | Automática | Pasa | `docs/resultados-qa-integracion-2026-11-02.md`: ejecución Postman reportada por Sofía el 2026-11-03; stock restaurado al terminar. |
 | TC-50 | HU-08/HU-10 | Cambiar el carrito después del checkout y confirmar | El pedido usa los datos del snapshot | Automática | | |
 | TC-51 | HU-10 | Confirmar checkout | 201, pedido `CONFIRMADO`, carrito vacío y stock reducido | Automática | Bloqueado: ruta de confirmación no está en `develop` | `docs/resultados-qa-integracion-2026-11-02.md` |
 | TC-52 | HU-10 | Confirmar dos veces | Segunda respuesta 200 con el mismo `pedidoId`; stock reducido una sola vez | Automática | Bloqueado: ruta de confirmación no está en `develop` | `docs/resultados-qa-integracion-2026-11-02.md` |
