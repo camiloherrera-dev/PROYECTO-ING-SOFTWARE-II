@@ -87,4 +87,16 @@ TC-32 a TC-39 quedan registrados como **Pasa**, según el reporte de ejecución 
 
 Después de la ejecución anterior, se integró la PR #37 (`ae649e9`, que incluye `39520f7`) en `develop`. La rama ya contiene `POST /api/carrito/checkout/:checkoutId/confirmar` y la lógica HU-10 para confirmar el checkout. Los 404 anotados en la sección de verificación parcial corresponden a la revisión previa a este merge, por lo que no describen el estado actual del código.
 
-TC-50 a TC-58 quedan pendientes de reejecución con el entorno reconstruido desde el `develop` actualizado. La presencia de la ruta en el código no se toma como evidencia de que los casos funcionales ya pasaron.
+Al integrarse HU-10, TC-50 a TC-58 quedaron pendientes de reejecución. En la ejecución posterior de Postman del 3 de noviembre, Sofía confirmó que **todos pasaron** en el entorno reconstruido desde `develop` (`ae649e9`). Los resultados negativos requeridos por los casos se consideran aprobados cuando coinciden con el resultado esperado:
+
+| Caso(s) | Resultado esperado que se valida | Registro |
+|---|---|---|
+| TC-50 a TC-52 | Snapshot respetado; primera confirmación crea pedido; segunda confirmación es idempotente. | Pasa, según reporte de Sofía. |
+| TC-53 | 409 `CHECKOUT_EXPIRADO` después de vencer el checkout. | Pasa (error esperado), según reporte de Sofía. |
+| TC-54 | 404 `CHECKOUT_NO_ENCONTRADO` al confirmar con otro usuario. | Pasa (error esperado); captura Postman muestra 404 con ese código. |
+| TC-55 | 409 `STOCK_INSUFICIENTE` antes de reponer; la confirmación reintentada pasa con stock restaurado. | Pasa; captura muestra el 409 esperado y Sofía confirma el resultado del caso completo. |
+| TC-56 | 401 `NO_AUTORIZADO` en disponibilidad, checkout y confirmación sin token. | Pasa (errores esperados), según reporte de Sofía. |
+| TC-57 | Checkout confirmado y TTL esperado para checkout y pedido en Redis. | Pasa, según reporte de Sofía. |
+| TC-58 | 409 `CHECKOUT_REEMPLAZADO` para el checkout anterior; no se crea pedido. | Pasa (error esperado), según reporte de Sofía. |
+
+La matriz de `docs/plan-pruebas.md` refleja los estados. No se adjuntaron capturas de todos los casos; el detalle se registra con base en el reporte de ejecución de Sofía.
