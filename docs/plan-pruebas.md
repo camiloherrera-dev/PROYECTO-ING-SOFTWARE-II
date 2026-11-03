@@ -61,7 +61,7 @@ Columna **Auto** = se ejecuta en Postman con aserciones. **Manual** = se ejecuta
 
 Los TC-24 a TC-42 cubren HU-04 a HU-07 y los riesgos de persistencia y concurrencia. Registrar Pasa/Falla y enlazar evidencia solo después de ejecutar cada caso en el entorno integrado.
 
-| ID | Criterio de aceptación / regla | Prueba | Resultado esperado | Auto | Resultado (Pasa/Falla) | Evidencia / Bug |
+| ID | Criterio de aceptación / regla | Prueba | Resultado esperado | Auto | Resultado (Pasa/Falla/Parcial) | Evidencia / Bug |
 |---|---|---|---|---|---|---|
 | TC-24 | HU-04: eliminar un producto | Con `prod_001` y `prod_002` en el carrito, DELETE `prod_002` | 200; `prod_002` no aparece; total recalculado | Sí | | |
 | TC-25 | HU-04: eliminar el último producto | DELETE del único producto | 200; `items: []`, total 0 y `EXISTS carrito:{userId}` = 0 | API automatizada; Redis manual | Pasa | resultados-qa-sprint2-2026-10-22.md |
@@ -151,7 +151,7 @@ docker exec -it carrito_redis redis-cli TTL carrito:<userId>       # TC-23: ~604
 
 Plan añadido para cubrir disponibilidad, checkout, confirmación del pedido y persistencia. Los casos dependientes de los endpoints de Sprint 3 se ejecutan cuando sus cambios estén integrados en `develop`.
 
-| ID | HU | Prueba | Resultado esperado | Tipo | Resultado | Evidencia / Bug |
+| ID | HU | Prueba | Resultado esperado | Tipo | Resultado (Pasa/Falla/Parcial/Bloqueado) | Evidencia / Bug |
 |---|---|---|---|---|---|---|
 | TC-43 | HU-09 | Carrito con productos en stock | 200; `disponible: true`; todos los ítems en `OK` | Automática | Falla | `docs/resultados-qa-integracion-2026-11-02.md`: devuelve `disponible: true`, pero marca los dos productos activos con estado `INACTIVO`. |
 | TC-44 | HU-09 | Bajar stock del jean a 1 con 2 en el carrito | `SIN_STOCK`; `disponible: false` | Automática | | |
