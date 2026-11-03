@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "Carrito de Compras - QA Sprint 1",
-    "description": "Coleccion de pruebas del microservicio de carrito (HU-01, HU-02, HU-03, RT-01). Ver docs/plan-pruebas.md. Requiere docker compose up --build. TC-22 y TC-23 (Redis) son manuales con redis-cli.",
+    "name": "Carrito de Compras - QA Sprint 1 a Sprint 3",
+    "description": "Regresión del carrito y casos Sprint 2/3. TC-53 y TC-57 requieren validación manual documentada en docs/plan-pruebas.md. Ejecutar Sprint 3 solo después de integrar los endpoints en develop.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -37,6 +37,8 @@
           "cv.set('token',  makeToken(cv.get('user1'), secret));",
           "cv.set('token2', makeToken(cv.get('user2'), secret));",
           "cv.set('token3', makeToken(cv.get('user3'), secret));",
+          "if (pm.info.requestName.indexOf('TC-01') === 0 || !cv.get('user5')) cv.set('user5', 'qa_s3_' + Date.now());",
+          "cv.set('token5', makeToken(cv.get('user5'), secret));",
           "cv.set('token4', makeToken(cv.get('user4'), secret));"
         ]
       }
@@ -88,6 +90,14 @@
       "key": "token4",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "user5",
+      "value": ""
+    },
+    {
+      "key": "token5",
+      "value": ""
     }
   ],
   "item": [
@@ -3787,6 +3797,2263 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"Mock restaurado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sprint 3 — HU-08 a HU-10 (TC-43 a TC-58)",
+      "description": "Usa user5/token5, aislado del resto de la colección. TC-53 y TC-57 requieren verificación manual: para TC-53 configura CHECKOUT_VIGENCIA_SECONDS=30, ejecuta su solicitud de preparación, espera más de 30 s y envía POST {{baseUrl}}/api/carrito/checkout/{{checkout53}}/confirmar; debe responder 409 CHECKOUT_EXPIRADO. Para TC-57, tras una confirmación exitosa, consulta en Redis HGET checkout:{checkoutId} estado, TTL checkout:{checkoutId} y TTL pedido:{pedidoId}.",
+      "item": [
+        {
+          "name": "TC-43 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito vaciado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-43 Agregar 3 camisetas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-43 Agregar 2 jeans",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_002\",\n  \"cantidad\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-43 Todo disponible",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/disponibilidad"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 y carrito disponible\", () => { pm.response.to.have.status(200); pm.expect(pm.response.json().disponible).to.eql(true); });",
+                  "pm.test(\"Todos los productos están en OK\", () => pm.expect(pm.response.json().items.every(i => i.estado === \"OK\")).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-44 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito vaciado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-44 Agregar 2 jeans",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_002\",\n  \"cantidad\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-44 Bajar stock del jean a 1",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{mockUrl}}/__test/productos/prod_002"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stock\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mock actualizado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-44 Detectar SIN_STOCK",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/disponibilidad"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const c = pm.response.json();",
+                  "pm.test(\"Carrito no disponible\", () => { pm.response.to.have.status(200); pm.expect(c.disponible).to.eql(false); });",
+                  "pm.test(\"Jean queda SIN_STOCK\", () => pm.expect(c.items.find(i => i.productId === \"prod_002\").estado).to.eql(\"SIN_STOCK\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-44 Restaurar stock del jean",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{mockUrl}}/__test/productos/prod_002"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stock\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mock actualizado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-45 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito vaciado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-45 Agregar camiseta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-45 Desactivar camiseta",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{mockUrl}}/__test/productos/prod_001"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mock actualizado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-45 Detectar INACTIVO",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/disponibilidad"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const c = pm.response.json();",
+                  "pm.test(\"Camiseta queda INACTIVO\", () => pm.expect(c.items.find(i => i.productId === \"prod_001\").estado).to.eql(\"INACTIVO\"));",
+                  "pm.test(\"No está disponible\", () => pm.expect(c.disponible).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-45 Restaurar camiseta activa",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{mockUrl}}/__test/productos/prod_001"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mock actualizado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-46 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito vaciado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-46 Agregar camiseta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-46 Cambiar precio",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{mockUrl}}/__test/productos/prod_001"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"precio\": 59900\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mock actualizado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-46 Detectar PRECIO_CAMBIO",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/disponibilidad"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const i = pm.response.json().items.find(x => x.productId === \"prod_001\");",
+                  "pm.test(\"Precio cambiado reportado\", () => { pm.expect(i.estado).to.eql(\"PRECIO_CAMBIO\"); pm.expect(i.precioAnterior).to.eql(49900); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-46 Segunda consulta queda OK",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/disponibilidad"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"La segunda consulta queda OK\", () => pm.expect(pm.response.json().items.find(i => i.productId === \"prod_001\").estado).to.eql(\"OK\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-46 Restaurar precio",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{mockUrl}}/__test/productos/prod_001"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"precio\": 49900\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mock actualizado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-47 Vaciar carrito",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito vaciado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-47 Disponibilidad con carrito vacío",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/disponibilidad"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito vacío responde 400 CARRITO_VACIO\", () => { pm.response.to.have.status(400); pm.expect(pm.response.json().codigo).to.eql(\"CARRITO_VACIO\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-48 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito vaciado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-48 Agregar 3 camisetas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-48 Agregar 2 jeans",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_002\",\n  \"cantidad\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-48 Crear checkout con carrito disponible",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 con checkoutId, vencimiento y total de demo\", () => { const c = pm.response.json(); pm.response.to.have.status(201); pm.expect(c.checkoutId).to.match(/^chk_/); pm.expect(c.expiraEn).to.be.a(\"string\"); pm.expect(c.total).to.eql(343012); });",
+                  "pm.collectionVariables.set(\"checkout48\", pm.response.json().checkoutId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-49 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito vaciado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-49 Agregar 2 jeans",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_002\",\n  \"cantidad\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-49 Reducir stock del jean",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{mockUrl}}/__test/productos/prod_002"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stock\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mock actualizado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-49 Rechazar checkout no disponible",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 CARRITO_NO_DISPONIBLE con ítems\", () => { pm.response.to.have.status(409); const c = pm.response.json(); pm.expect(c.codigo).to.eql(\"CARRITO_NO_DISPONIBLE\"); pm.expect(c.items).to.be.an(\"array\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-49 Restaurar stock del jean",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{mockUrl}}/__test/productos/prod_002"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stock\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mock actualizado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-50 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito vaciado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-50 Agregar 2 camisetas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-50 Crear snapshot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Snapshot creado\", () => pm.response.to.have.status(201)); pm.collectionVariables.set(\"checkout50\", pm.response.json().checkoutId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-50 Modificar carrito después del snapshot",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items/prod_001"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito modificado después del checkout\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-50 Confirmar snapshot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout50}}/confirmar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pedido conserva la cantidad del snapshot\", () => { pm.response.to.have.status(201); const i = pm.response.json().items.find(i => i.productId === \"prod_001\"); pm.expect(i.cantidad).to.eql(2); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-51 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito vaciado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-51 Agregar camiseta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-51 Guardar stock inicial",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{mockUrl}}/api/catalogo/productos/prod_001"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Stock inicial leído\", () => pm.response.to.have.status(200)); pm.collectionVariables.set(\"stockBefore51\", pm.response.json().stock);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-51 Crear checkout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Checkout listo para confirmar\", () => pm.response.to.have.status(201)); pm.collectionVariables.set(\"checkout51\", pm.response.json().checkoutId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-51 Confirmar pedido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout51}}/confirmar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 y pedido CONFIRMADO\", () => { pm.response.to.have.status(201); pm.expect(pm.response.json().estado).to.eql(\"CONFIRMADO\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-51 Verificar carrito vacío",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito vacío tras confirmar\", () => { pm.response.to.have.status(200); pm.expect(pm.response.json().items).to.eql([]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-51 Verificar stock reducido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{mockUrl}}/api/catalogo/productos/prod_001"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mock redujo una unidad de stock\", () => pm.expect(pm.response.json().stock).to.eql(Number(pm.collectionVariables.get(\"stockBefore51\")) - 1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-52 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito vaciado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-52 Agregar camiseta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-52 Guardar stock inicial",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{mockUrl}}/api/catalogo/productos/prod_001"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"stockBefore52\", pm.response.json().stock);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-52 Crear checkout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Checkout listo\", () => pm.response.to.have.status(201)); pm.collectionVariables.set(\"checkout52\", pm.response.json().checkoutId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-52 Primera confirmación",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout52}}/confirmar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pedido nuevo 201\", () => { pm.response.to.have.status(201); pm.expect(pm.response.json().estado).to.eql(\"CONFIRMADO\"); }); pm.collectionVariables.set(\"pedido52\", pm.response.json().pedidoId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-52 Segunda confirmación idempotente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout52}}/confirmar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 con el mismo pedidoId\", () => { pm.response.to.have.status(200); pm.expect(pm.response.json().pedidoId).to.eql(pm.collectionVariables.get(\"pedido52\")); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-52 Verificar stock descontado una sola vez",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{mockUrl}}/api/catalogo/productos/prod_001"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Solo se descontó una unidad\", () => pm.expect(pm.response.json().stock).to.eql(Number(pm.collectionVariables.get(\"stockBefore52\")) - 1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-53 MANUAL — crear checkout de vigencia corta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout"
+            },
+            "description": "Antes de ejecutar, configura CHECKOUT_VIGENCIA_SECONDS=30 y reinicia la API. Guarda el checkoutId; espera más de 30 s y envía manualmente POST {{baseUrl}}/api/carrito/checkout/{{checkout53}}/confirmar. Esperado: 409 CHECKOUT_EXPIRADO."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Checkout de prueba creado\", () => pm.response.to.have.status(201)); pm.collectionVariables.set(\"checkout53\", pm.response.json().checkoutId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-54 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito vaciado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-54 Agregar camiseta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-54 Crear checkout como usuario 5",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Checkout creado\", () => pm.response.to.have.status(201)); pm.collectionVariables.set(\"checkout54\", pm.response.json().checkoutId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-54 Otro usuario no puede confirmar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token2}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout54}}/confirmar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"404 CHECKOUT_NO_ENCONTRADO para otro usuario\", () => { pm.response.to.have.status(404); pm.expect(pm.response.json().codigo).to.eql(\"CHECKOUT_NO_ENCONTRADO\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-55 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito vaciado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-55 Agregar camiseta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-55 Guardar stock inicial",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{mockUrl}}/api/catalogo/productos/prod_001"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Stock inicial leído\", () => pm.response.to.have.status(200)); pm.collectionVariables.set(\"stockBefore55\", pm.response.json().stock);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-55 Crear checkout con stock disponible",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Checkout creado\", () => pm.response.to.have.status(201)); pm.collectionVariables.set(\"checkout55\", pm.response.json().checkoutId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-55 Agotar stock antes de confirmar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{mockUrl}}/__test/productos/prod_001"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stock\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mock actualizado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-55 Confirmar con stock agotado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout55}}/confirmar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 STOCK_INSUFICIENTE\", () => { pm.response.to.have.status(409); pm.expect(pm.response.json().codigo).to.eql(\"STOCK_INSUFICIENTE\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-55 Restaurar stock inicial",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{mockUrl}}/__test/productos/prod_001"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stock\": {{stockBefore55}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Restaura el stock observado antes de la prueba."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Stock restaurado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-55 Reintentar después de reponer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout55}}/confirmar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"El reintento confirma el pedido\", () => { pm.response.to.have.status(201); pm.expect(pm.response.json().estado).to.eql(\"CONFIRMADO\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-56 Disponibilidad sin token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/disponibilidad"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"401 NO_AUTORIZADO\", () => { pm.response.to.have.status(401); pm.expect(pm.response.json().codigo).to.eql(\"NO_AUTORIZADO\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-56 Checkout sin token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"401 NO_AUTORIZADO\", () => { pm.response.to.have.status(401); pm.expect(pm.response.json().codigo).to.eql(\"NO_AUTORIZADO\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-56 Confirmación sin token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout/chk_sin_token/confirmar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"401 NO_AUTORIZADO\", () => { pm.response.to.have.status(401); pm.expect(pm.response.json().codigo).to.eql(\"NO_AUTORIZADO\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-58 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito vaciado\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-58 Agregar camiseta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-58 Crear checkout antiguo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Primer checkout creado\", () => pm.response.to.have.status(201)); pm.collectionVariables.set(\"checkoutOld\", pm.response.json().checkoutId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-58 Crear checkout nuevo que reemplaza al anterior",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Segundo checkout creado\", () => pm.response.to.have.status(201)); pm.collectionVariables.set(\"checkoutNew\", pm.response.json().checkoutId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-58 No se puede confirmar checkout reemplazado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token5}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkoutOld}}/confirmar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 CHECKOUT_REEMPLAZADO sin pedido\", () => { pm.response.to.have.status(409); pm.expect(pm.response.json().codigo).to.eql(\"CHECKOUT_REEMPLAZADO\"); pm.expect(pm.response.json()).not.to.have.property(\"pedidoId\"); });"
                 ]
               }
             }
