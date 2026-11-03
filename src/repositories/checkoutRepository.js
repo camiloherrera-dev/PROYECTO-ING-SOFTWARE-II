@@ -28,15 +28,24 @@ redis.defineCommand('checkoutConfirm', {
   `,
 });
 
+// exec() de ioredis NO lanza si un comando de la MULTI falla: devuelve [[err, res], ...].
+// Esta función convierte cualquiera de esos errores (o una transacción abortada) en excepción.
+async function execOrThrow(multi) {
+  const results = await multi.exec();
+  if (results === null) throw new Error('Transacción de Redis abortada');
+  const fallo = (results || []).find(([err]) => err);
+  if (fallo) throw fallo[0];
+  return results;
+}
+
 async function saveCheckout(checkout) {
   const k = kCheckout(checkout.checkoutId);
-  await redis.multi()
+  await execOrThrow(redis.multi()
     .del(k)
     .hset(k, 'data', JSON.stringify(checkout), 'estado', 'PENDIENTE', 'userId', checkout.userId)
     .expire(k, checkoutTtlSeconds)
     // El puntero define cuál es el checkout vigente: uno nuevo reemplaza al anterior
-    .set(kActivo(checkout.userId), checkout.checkoutId, 'EX', checkoutTtlSeconds)
-    .exec();
+    .set(kActivo(checkout.userId), checkout.checkoutId, 'EX', checkoutTtlSeconds));
 }
 
 async function getCheckout(checkoutId) {
@@ -61,12 +70,11 @@ async function resetConfirmation(checkoutId) {
 // Guarda el pedido Y marca el checkout CONFIRMADO en la misma transacción (MULTI):
 // nunca queda un pedido guardado con el checkout sin confirmar.
 async function savePedidoYConfirmar(checkoutId, pedido) {
-  await redis.multi()
+  await execOrThrow(redis.multi()
     .set(kPedido(pedido.pedidoId), JSON.stringify(pedido), 'EX', pedidoTtlSeconds)
     .lpush(kPedidos(pedido.userId), pedido.pedidoId)
     .expire(kPedidos(pedido.userId), pedidoTtlSeconds)
-    .hset(kCheckout(checkoutId), 'estado', 'CONFIRMADO', 'pedidoId', pedido.pedidoId)
-    .exec();
+    .hset(kCheckout(checkoutId), 'estado', 'CONFIRMADO', 'pedidoId', pedido.pedidoId));
 }
 
 async function getPedido(pedidoId) {
@@ -76,5 +84,5 @@ async function getPedido(pedidoId) {
 
 module.exports = {
   saveCheckout, getCheckout, getActiveCheckoutId, startConfirmation,
-  resetConfirmation, savePedidoYConfirmar, getPedido,
+  resetConfirmation, savePedidoYConfirmar, getPedido, execOrThrow,
 };

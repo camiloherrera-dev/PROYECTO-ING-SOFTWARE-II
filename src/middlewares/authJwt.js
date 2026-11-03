@@ -15,13 +15,19 @@ function authJwt(req, res, next) {
     throw new AppError(401, 'NO_AUTORIZADO', 'Formato de token inválido');
   }
 
+  let payload;
   try {
-    const payload = jwt.verify(token, jwtSecret, { algorithms: ['HS256'] });
-    req.userId = String(payload.sub);
-    next();
+    payload = jwt.verify(token, jwtSecret, { algorithms: ['HS256'] });
   } catch (err) {
     throw new AppError(401, 'NO_AUTORIZADO', 'Token inválido o expirado');
   }
+
+  if (typeof payload.sub !== 'string' || !payload.sub.trim()) {
+    throw new AppError(401, 'NO_AUTORIZADO', 'El token no identifica al usuario (sub)');
+  }
+
+  req.userId = payload.sub;
+  next();
 }
 
 module.exports = { authJwt };

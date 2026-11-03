@@ -37,8 +37,84 @@ function createCheckoutService({
   }
 
   // =================== HU-10 Confirmar pedido (Camilo) ===================
+  // Devuelve { pedido, creado }: creado = false cuando el checkout ya estaba confirmado (idempotencia).
+  async function confirmCheckout(userId, checkoutId) {
+    const checkout = await checkouts.getCheckout(checkoutId);
+    // Un checkout de otro usuario se trata igual que uno inexistente: no se revela que existe
+    if (!checkout || checkout.userId !== userId) {
+      throw new AppError(404, 'CHECKOUT_NO_ENCONTRADO', 'El checkout no existe');
+    }
+    if (checkout.estado === 'CONFIRMADO') return pedidoExistente(checkout.pedidoId);
 
-  return { createCheckout };
+    const vigente = await checkouts.getActiveCheckoutId(userId);
+    if (vigente !== checkoutId) {
+      throw new AppError(409, 'CHECKOUT_REEMPLAZADO', 'Este resumen fue reemplazado por uno más reciente');
+    }
+    if (now() > Date.parse(checkout.expiraEn)) {
+      throw new AppError(409, 'CHECKOUT_EXPIRADO', 'El resumen de compra venció; vuelve a iniciar el pago');
+    }
+
+    // PENDIENTE → CONFIRMANDO de forma atómica (script Lua): solo una petición sigue
+    const lock = await checkouts.startConfirmation(checkoutId);
+    if (lock.estado === 'CONFIRMADO') return pedidoExistente(lock.pedidoId);
+    if (lock.estado === 'CONFIRMANDO') {
+      throw new AppError(409, 'CONFIRMACION_EN_CURSO', 'Este pedido se está confirmando; intenta de nuevo en unos segundos');
+    }
+    if (lock.estado !== 'ADQUIRIDO') {
+      throw new AppError(404, 'CHECKOUT_NO_ENCONTRADO', 'El checkout no existe');
+    }
+
+    // 1) Descontar stock en Catálogo (todo o nada). Si falla, el checkout vuelve a PENDIENTE.
+    let reserva;
+    try {
+      reserva = await catalog.reserveStock(checkoutId, checkout.items);
+    } catch (e) {
+      await checkouts.resetConfirmation(checkoutId);
+      throw e;
+    }
+
+    // 2) Guardar el pedido y marcar CONFIRMADO en una sola transacción.
+    // El cliente paga lo que vio: se copia el snapshot sin recalcular.
+    const pedido = {
+      pedidoId: `ped_${crypto.randomUUID()}`,
+      checkoutId,
+      userId,
+      estado: 'CONFIRMADO',
+      creadoEn: new Date(now()).toISOString(),
+      reservaId: reserva.reservaId,
+      items: checkout.items,
+      subtotal: checkout.subtotal,
+      descuentoItems: checkout.descuentoItems,
+      descuentoCarrito: checkout.descuentoCarrito,
+      descuentoTotal: checkout.descuentoTotal,
+      total: checkout.total,
+      descuentosAplicados: checkout.descuentosAplicados,
+    };
+    try {
+      await checkouts.savePedidoYConfirmar(checkoutId, pedido);
+    } catch (e) {
+      await catalog.releaseReservation(reserva.reservaId); // nunca lanza
+      await checkouts.resetConfirmation(checkoutId).catch(() => {});
+      throw new AppError(500, 'ERROR_INTERNO', 'No se pudo guardar el pedido; el stock fue devuelto');
+    }
+
+    // 3) Vaciar el carrito. Si falla, el pedido ya existe y no se deshace.
+    try {
+      await repository.clearCart(userId);
+    } catch (e) {
+      console.error(`Pedido ${pedido.pedidoId} creado, pero no se pudo vaciar el carrito de ${userId}: ${e.message}`);
+    }
+
+    return { pedido, creado: true };
+  }
+
+  async function pedidoExistente(pedidoId) {
+    const pedido = pedidoId ? await checkouts.getPedido(pedidoId) : null;
+    if (!pedido) throw new AppError(404, 'CHECKOUT_NO_ENCONTRADO', 'El pedido de este checkout ya no existe');
+    return { pedido, creado: false };
+  }
+
+  return { createCheckout, confirmCheckout };
 }
 
 module.exports = { ...createCheckoutService(), createCheckoutService };
