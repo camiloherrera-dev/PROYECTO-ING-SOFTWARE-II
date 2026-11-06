@@ -14,7 +14,10 @@ function errorHandler(err, req, res, next) {
 
   const codigo = err instanceof AppError ? err.codigo : 'ERROR_INTERNO';
   const mensaje = err instanceof AppError ? err.message : 'Error interno del servidor';
-  res.status(status).json({ codigo, mensaje });
+  // detalles va PRIMERO: así nunca puede pisar codigo ni mensaje
+  const detalles = err instanceof AppError && err.detalles ? err.detalles : {};
+
+  res.status(status).json({ ...detalles, codigo, mensaje });
 }
 
 module.exports = { notFound, errorHandler };

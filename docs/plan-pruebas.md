@@ -61,25 +61,25 @@ Columna **Auto** = se ejecuta en Postman con aserciones. **Manual** = se ejecuta
 
 Los TC-24 a TC-42 cubren HU-04 a HU-07 y los riesgos de persistencia y concurrencia. Registrar Pasa/Falla y enlazar evidencia solo después de ejecutar cada caso en el entorno integrado.
 
-| ID | Criterio de aceptación / regla | Prueba | Resultado esperado | Auto | Resultado (Pasa/Falla) | Evidencia / Bug |
+| ID | Criterio de aceptación / regla | Prueba | Resultado esperado | Auto | Resultado (Pasa/Falla/Parcial) | Evidencia / Bug |
 |---|---|---|---|---|---|---|
-| TC-24 | HU-04: eliminar un producto | Con `prod_001` y `prod_002` en el carrito, DELETE `prod_002` | 200; `prod_002` no aparece; total recalculado | Sí | | |
+| TC-24 | HU-04: eliminar un producto | Con `prod_001` y `prod_002` en el carrito, DELETE `prod_002` | 200; `prod_002` no aparece; total recalculado | Sí | Pasa | Ejecución Postman de la regresión comunicada por Sofía el 2026-11-03. |
 | TC-25 | HU-04: eliminar el último producto | DELETE del único producto | 200; `items: []`, total 0 y `EXISTS carrito:{userId}` = 0 | API automatizada; Redis manual | Pasa | resultados-qa-sprint2-2026-10-22.md |
-| TC-26 | HU-04: producto fuera del carrito | DELETE `prod_002` sin haberlo agregado | 404 `PRODUCTO_NO_ENCONTRADO` | Sí | | |
-| TC-27 | HU-04: sin token | DELETE de un ítem sin Authorization | 401 `NO_AUTORIZADO` | Sí | | |
+| TC-26 | HU-04: producto fuera del carrito | DELETE `prod_002` sin haberlo agregado | 404 `PRODUCTO_NO_ENCONTRADO` | Sí | Pasa (cuerpo esperado) | Ejecución Postman comunicada por Sofía el 2026-11-03: `PRODUCTO_NO_ENCONTRADO`, “El producto no está en el carrito”. Código HTTP no informado. |
+| TC-27 | HU-04: sin token | DELETE de un ítem sin Authorization | 401 `NO_AUTORIZADO` | Sí | Pasa (cuerpo esperado) | Ejecución Postman comunicada por Sofía el 2026-11-03: `NO_AUTORIZADO`, “Token no proporcionado”. Código HTTP no informado. |
 | TC-28 | HU-05: vaciar carrito | DELETE `/api/carrito` con 2 productos | 200; `items: []`, todos los totales en 0 y la clave no existe en Redis | API automatizada; Redis manual | Pasa | resultados-qa-sprint2-2026-10-22.md |
-| TC-29 | HU-05: idempotencia | Repetir TC-28 | 200 con el carrito vacío | Sí | | |
-| TC-30 | HU-05: aislamiento | Vaciar con usuario 1 | El carrito del usuario 2 no cambia | Sí | | |
-| TC-31 | HU-05: sin token | DELETE `/api/carrito` sin Authorization | 401 y no se borra ningún carrito | Sí | | |
-| TC-32 | HU-06: desglose | GET con productos | Respuesta incluye subtotal, descuentos, total y `descuentosAplicados`; se cumplen las identidades de la sección 3.3 del contrato | Sí | | |
-| TC-33 | HU-07: porcentaje por producto | Agregar 1 × `prod_002` | `descuentoAplicadoItem` = 12.990 | Sí | | |
-| TC-34 | HU-07: cantidad mínima | Probar 2 y luego 3 × `prod_001` | Descuento 0 con 2; 22.455 con 3 | Sí | | |
-| TC-35 | HU-07: monto mínimo de carrito | 3 × `prod_001` + 2 × `prod_002` | `descuentoCarrito` = 18.053; total = 343.012 | Sí | | |
-| TC-36 | HU-07: umbral sobre base neta | 3 × `prod_001` + 1 × `prod_002` | `descuentoCarrito` = 0 (base neta = 244.155) | Sí | | |
-| TC-37 | HU-06: total al modificar | Desde TC-35, PUT `prod_001` a cantidad 2 | Sin descuento de camisetas; `descuentoCarrito` = 16.681; total = 316.939 | Sí | | |
-| TC-38 | HU-06: total al eliminar | Desde TC-35, DELETE `prod_002` | Sin descuento de carrito; total = 127.245 | Sí | | |
-| TC-39 | HU-07: productos no disponibles | Desde TC-35, desactivar `prod_002` en el mock y hacer GET | `prod_002` tiene `disponible:false` y descuento 0; total = 127.245 | Sí | | |
-| TC-40 | HU-07: modo degradado | Simular fallo en `getActiveRules` y consultar el carrito | 200; descuentos en 0; `descuentosDisponibles:false`; total = subtotal | **Manual** | | |
+| TC-29 | HU-05: idempotencia | Repetir TC-28 | 200 con el carrito vacío | Sí | Pasa | Ejecución Postman de la regresión comunicada por Sofía el 2026-11-03. |
+| TC-30 | HU-05: aislamiento | Vaciar con usuario 1 | El carrito del usuario 2 no cambia | Sí | Pasa | Ejecución Postman de la regresión comunicada por Sofía el 2026-11-03. |
+| TC-31 | HU-05: sin token | DELETE `/api/carrito` sin Authorization | 401 y no se borra ningún carrito | Sí | Pasa (error esperado) | Ejecución Postman comunicada por Sofía el 2026-11-03: cuerpo `NO_AUTORIZADO`, “Token no proporcionado”; Sofía confirma que el caso pasó. |
+| TC-32 | HU-06: desglose | GET con productos | Respuesta incluye subtotal, descuentos, total y `descuentosAplicados`; se cumplen las identidades de la sección 3.3 del contrato | Sí | Pasa | Ejecución Postman comunicada por Sofía el 2026-11-03: reporta el caso como aprobado. |
+| TC-33 | HU-07: porcentaje por producto | Agregar 1 × `prod_002` | `descuentoAplicadoItem` = 12.990 | Sí | Pasa | Ejecución Postman comunicada por Sofía el 2026-11-03: reporta el caso como aprobado. |
+| TC-34 | HU-07: cantidad mínima | Probar 2 y luego 3 × `prod_001` | Descuento 0 con 2; 22.455 con 3 | Sí | Pasa | Ejecución Postman comunicada por Sofía el 2026-11-03: reporta el caso como aprobado. |
+| TC-35 | HU-07: monto mínimo de carrito | 3 × `prod_001` + 2 × `prod_002` | `descuentoCarrito` = 18.053; total = 343.012 | Sí | Pasa | Ejecución Postman comunicada por Sofía el 2026-11-03: reporta el caso como aprobado. |
+| TC-36 | HU-07: umbral sobre base neta | 3 × `prod_001` + 1 × `prod_002` | `descuentoCarrito` = 0 (base neta = 244.155) | Sí | Pasa | Ejecución Postman comunicada por Sofía el 2026-11-03: reporta el caso como aprobado. |
+| TC-37 | HU-06: total al modificar | Desde TC-35, PUT `prod_001` a cantidad 2 | Sin descuento de camisetas; `descuentoCarrito` = 16.681; total = 316.939 | Sí | Pasa | Ejecución Postman comunicada por Sofía el 2026-11-03: reporta el caso como aprobado. |
+| TC-38 | HU-06: total al eliminar | Desde TC-35, DELETE `prod_002` | Sin descuento de carrito; total = 127.245 | Sí | Pasa | Ejecución Postman comunicada por Sofía el 2026-11-03: reporta el caso como aprobado. |
+| TC-39 | HU-07: productos no disponibles | Desde TC-35, desactivar `prod_002` en el mock y hacer GET | `prod_002` tiene `disponible:false` y descuento 0; total = 127.245 | Sí | Pasa | Ejecución Postman comunicada por Sofía el 2026-11-03: reporta el caso como aprobado; la colección incluye solicitud de limpieza para restaurar el mock. |
+| TC-40 | HU-07: modo degradado | Simular fallo en `getActiveRules` y consultar el carrito | 200; descuentos en 0; `descuentosDisponibles:false`; total = subtotal | Sí | Pasa (unitaria) | `tests/cartTotals.test.js`, 6/6 en `develop` (`0045b12`); incluye error de Descuentos, error síncrono y timeout. Ver `docs/resultados-qa-integracion-2026-11-02.md`. |
 | TC-41 | RNF-03: TTL al eliminar | DELETE de un ítem dejando otro en el carrito; consultar TTL | TTL cercano a 604800 segundos (renovado) | **Manual** | Pasa | resultados-qa-sprint2-2026-10-22.md |
 | TC-42 | Concurrencia | 20 POST simultáneos de 1 unidad de `prod_001` | Cantidad final 20; un 201 y diecinueve 200 | **Manual** | Pasa | resultados-qa-sprint2-2026-10-22.md |
 
@@ -146,3 +146,34 @@ docker exec -it carrito_redis redis-cli TTL carrito:<userId>       # TC-23: ~604
 | Repositorio Redis y POST /items | Jeisson | TC-01 a TC-09, TC-22, TC-23 |
 | Cliente de Catálogo y GET /carrito | Camilo | TC-08 a TC-12 |
 | Claim del JWT y secreto compartido (pendiente de acordar con Catálogo) | Jose David / Juan David | Generación de tokens en la colección |
+
+## 9. Sprint 3 — Flujo de compra (HU-08, HU-09, HU-10)
+
+Plan añadido para cubrir disponibilidad, checkout, confirmación del pedido y persistencia. Los casos dependientes de los endpoints de Sprint 3 se ejecutan cuando sus cambios estén integrados en `develop`.
+
+| ID | HU | Prueba | Resultado esperado | Tipo | Resultado (Pasa/Falla/Parcial/Bloqueado) | Evidencia / Bug |
+|---|---|---|---|---|---|---|
+| TC-43 | HU-09 | Carrito con productos en stock | 200; `disponible: true`; todos los ítems en `OK` | Automática | Falla | `docs/resultados-qa-integracion-2026-11-02.md`: devuelve `disponible: true`, pero marca los dos productos activos con estado `INACTIVO`. |
+| TC-44 | HU-09 | Bajar stock del jean a 1 con 2 en el carrito | `SIN_STOCK`; `disponible: false` | Automática | Pasa | `docs/resultados-qa-integracion-2026-11-02.md`: ejecución Postman reportada por Sofía el 2026-11-03; incluye restauración del stock. |
+| TC-45 | HU-09 | Desactivar un producto en el mock | Estado `INACTIVO` | Automática | Pasa | `docs/resultados-qa-integracion-2026-11-02.md`: ejecución Postman reportada por Sofía el 2026-11-03; producto reactivado al terminar. |
+| TC-46 | HU-09 | Cambiar precio del producto y consultar dos veces | Primera consulta `PRECIO_CAMBIO` con `precioAnterior`; segunda consulta `OK` | Automática | Falla | `docs/resultados-qa-integracion-2026-11-02.md`: no detecta el cambio de precio ni devuelve `PRECIO_CAMBIO`/`precioAnterior`. |
+| TC-47 | HU-09 | Consultar disponibilidad con carrito vacío | 400 `CARRITO_VACIO` | Automática | Pasa | `docs/resultados-qa-integracion-2026-11-02.md`: ejecución Postman reportada por Sofía el 2026-11-03. |
+| TC-48 | HU-08 | Checkout con 3 camisetas y 2 jeans disponibles | 201 con `checkoutId`, `expiraEn` y total 343.012 | Automática | Pasa | `docs/resultados-qa-integracion-2026-11-02.md`: respuesta Postman confirma `checkoutId`, `expiraEn`, 409500 subtotal, 66488 descuentos y 343012 total. |
+| TC-49 | HU-08 | Crear checkout con un ítem sin stock | 409 `CARRITO_NO_DISPONIBLE` con `items` | Automática | Pasa | `docs/resultados-qa-integracion-2026-11-02.md`: ejecución Postman reportada por Sofía el 2026-11-03; stock restaurado al terminar. |
+| TC-50 | HU-08/HU-10 | Cambiar el carrito después del checkout y confirmar | El pedido usa los datos del snapshot | Automática | Pasa | Ejecución Postman comunicada por Sofía el 2026-11-03; resultado esperado confirmado. |
+| TC-51 | HU-10 | Confirmar checkout | 201, pedido `CONFIRMADO`, carrito vacío y stock reducido | Automática | Pasa | Ejecución Postman comunicada por Sofía el 2026-11-03; resultado esperado confirmado. |
+| TC-52 | HU-10 | Confirmar dos veces | Segunda respuesta 200 con el mismo `pedidoId`; stock reducido una sola vez | Automática | Pasa | Ejecución Postman comunicada por Sofía el 2026-11-03; resultado esperado confirmado. |
+| TC-53 | HU-10 | Confirmar checkout vencido (`CHECKOUT_VIGENCIA_SECONDS=30`) | 409 `CHECKOUT_EXPIRADO` | Manual / entorno configurado | Pasa (error esperado) | Ejecución Postman comunicada por Sofía el 2026-11-03; resultado esperado confirmado. |
+| TC-54 | HU-10 | Confirmar checkout de otro usuario | 404 `CHECKOUT_NO_ENCONTRADO` | Automática | Pasa (error esperado) | Postman mostró 404 `CHECKOUT_NO_ENCONTRADO`; Sofía confirma que TC-50 a TC-58 pasaron. |
+| TC-55 | HU-10 | Agotar stock entre checkout y confirmación; reponerlo y reintentar | 409 `STOCK_INSUFICIENTE`; reintento con stock disponible responde 201 | Automática | Pasa (error esperado y reintento) | Postman mostró 409 al confirmar sin stock; Sofía confirma que TC-50 a TC-58 pasaron. |
+| TC-56 | Todas | Llamar endpoints nuevos sin token | 401 `NO_AUTORIZADO` | Automática | Pasa (error esperado) | Ejecución Postman comunicada por Sofía el 2026-11-03; resultado esperado confirmado. |
+| TC-57 | HU-10 | Inspeccionar checkout y pedido en Redis | Checkout `CONFIRMADO`; TTL checkout cercano a 24 h y pedido cercano a 30 días | Manual / Redis | Pasa | Ejecución comunicada por Sofía el 2026-11-03; resultado esperado confirmado. |
+| TC-58 | HU-10 | Crear dos checkouts y confirmar el primero | 409 `CHECKOUT_REEMPLAZADO`; no se crea pedido | Automática | Pasa (error esperado) | Ejecución Postman comunicada por Sofía el 2026-11-03; resultado esperado confirmado. |
+
+### Preparación y ejecución de Sprint 3
+
+- Ejecutar TC-43 a TC-58 por Kong en el orden disponibilidad → checkout → confirmación. La colección usa un usuario aislado y guarda `checkoutId`/`pedidoId` para los pasos posteriores.
+- Para TC-44, TC-45, TC-46 y TC-55, modificar el mock con `PATCH http://localhost:4000/__test/productos/{productId}` y restaurar stock, precio y estado al finalizar cada caso.
+- TC-53 requiere levantar el servicio con `CHECKOUT_VIGENCIA_SECONDS=30`, crear un checkout, esperar más de 30 segundos y luego confirmarlo.
+- Para TC-57, usar `docker exec carrito_redis redis-cli --scan --pattern 'checkout:*'`, consultar el campo `estado` del hash de checkout y revisar el TTL de `pedido:{pedidoId}`.
+- Registrar los resultados y evidencia junto con la regresión final. La revisión final cubre TC-01 a TC-58 y `npm run e2e -- --pedido` después de integrar todas las historias.
