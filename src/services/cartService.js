@@ -3,10 +3,22 @@ const catalogClient = require('../clients/catalogClient');
 const AppError = require('../errors/AppError');
 const { buildCartResponse } = require('./cartTotals');
 const { validateQuantity, validateProductId } = require('./validators');
+// HU-12: CART_INACTIVITY_HOURS lo agrega Juan David a env.js; mientras tanto, 1 hora por defecto
+const { cartInactivityHours = 1 } = require('../config/env');
 
 // HU-02: conservar addItem (Jeisson) y updateQuantity (Santiago) al integrar.
 function createCartService({ repository = cartRepository, catalog = catalogClient,
-  buildResponse = buildCartResponse } = {}) {
+  buildResponse = buildCartResponse, now = () => Date.now() } = {}) {
+  // HU-12: registra la última actividad del cliente. Es de mejor esfuerzo:
+  // si falla, la operación del carrito no falla.
+  async function touchActividad(userId) {
+    try {
+      await repository.touchActividad(userId);
+    } catch (e) {
+      console.warn('No se pudo registrar la actividad del carrito:', e.message);
+    }
+  }
+
   async function getCart(userId) {
     const items = await repository.getAllItems(userId);
     // Revalidar todo antes de escribir: un fallo de Catálogo no debe consumir
@@ -45,6 +57,7 @@ function createCartService({ repository = cartRepository, catalog = catalogClien
     const { created } = await repository.addItem(userId, {
       productId, nombre: product.nombre, precioUnitario: product.precio, cantidad,
     });
+    await touchActividad(userId); // HU-12
     const items = await repository.getAllItems(userId);
     return { created, cart: await buildResponse(userId, items) };
   }
@@ -58,6 +71,7 @@ function createCartService({ repository = cartRepository, catalog = catalogClien
     }
 
     await repository.saveItem(userId, { ...existing, cantidad });
+    await touchActividad(userId); // HU-12
     const items = await repository.getAllItems(userId);
     return buildResponse(userId, items);
   }
@@ -68,6 +82,7 @@ function createCartService({ repository = cartRepository, catalog = catalogClien
     if (!removed) {
       throw new AppError(404, 'PRODUCTO_NO_ENCONTRADO', 'El producto no está en el carrito');
     }
+    await touchActividad(userId); // HU-12
     const items = await repository.getAllItems(userId); // [] si era el último
     return buildResponse(userId, items); // totales recalculados sin el producto
   }
@@ -78,7 +93,38 @@ function createCartService({ repository = cartRepository, catalog = catalogClien
     return buildResponse(userId, []);
   }
 
-  return { getCart, addItem, updateQuantity, removeItem, clearCart };
+  // ===================== HU-12 · Recuperar carrito (Camilo) =====================
+  // getCart y la disponibilidad NO registran actividad: son revalidaciones automáticas.
+  async function recoverCart(userId) {
+    const cart = await getCart(userId); // revalida contra Catálogo (503 si Catálogo cae, igual que GET)
+    const hayCarrito = cart.items.length > 0;
+    const ultima = await repository.getActividad(userId); // fecha ISO o null
+    const expiraEnSegundos = await repository.getTtl(userId); // null si no hay carrito
+    const inactividadMs = ultima ? Math.max(0, now() - Date.parse(ultima)) : 0;
+
+    const recuperacion = {
+      hayCarrito,
+      inactivo: hayCarrito && inactividadMs >= cartInactivityHours * 3600 * 1000,
+      ultimaActividad: ultima || null,
+      inactividadMinutos: Math.floor(inactividadMs / 60000),
+      expiraEnSegundos,
+      cambios: {
+        preciosCambiados: cart.items
+          .filter((i) => i.precioAnterior !== undefined)
+          .map(({ productId, nombre, precioAnterior, precioUnitario }) => (
+            { productId, nombre, precioAnterior, precioUnitario })),
+        noDisponibles: cart.items
+          .filter((i) => !i.disponible)
+          .map(({ productId, nombre }) => ({ productId, nombre })),
+      },
+    };
+
+    // La visita cuenta como actividad: el aviso sale una sola vez por periodo de inactividad
+    if (hayCarrito) await touchActividad(userId);
+    return { ...cart, recuperacion };
+  }
+
+  return { getCart, addItem, updateQuantity, removeItem, clearCart, recoverCart };
 }
 
 module.exports = { ...createCartService(), createCartService };
