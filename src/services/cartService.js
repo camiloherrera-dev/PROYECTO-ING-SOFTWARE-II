@@ -3,8 +3,7 @@ const catalogClient = require('../clients/catalogClient');
 const AppError = require('../errors/AppError');
 const { buildCartResponse } = require('./cartTotals');
 const { validateQuantity, validateProductId } = require('./validators');
-// HU-12: CART_INACTIVITY_HOURS lo agrega Juan David a env.js; mientras tanto, 1 hora por defecto
-const { cartInactivityHours = 1 } = require('../config/env');
+const { cartInactivityHours } = require('../config/env');
 
 // HU-02: conservar addItem (Jeisson) y updateQuantity (Santiago) al integrar.
 function createCartService({ repository = cartRepository, catalog = catalogClient,
