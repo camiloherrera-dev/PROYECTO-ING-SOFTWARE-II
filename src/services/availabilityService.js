@@ -32,18 +32,11 @@ function createAvailabilityService({ repository = cartRepository, catalog = cata
         continue;
       }
 
-      // Detección de cambio de precio
+// Detección de cambio de precio
       if (product.precio !== item.precioUnitario) {
-        const updatedItem = {
-          productId: item.productId,
-          nombre: product.nombre,
-          precioUnitario: product.precio,
-          cantidad: item.cantidad,
-        };
-        await repository.saveItem(userId, updatedItem);
-
-        // Verificar stock con el nuevo precio/contexto
         const stock = product.stock;
+        // La prioridad de estados es INACTIVO > SIN_STOCK > PRECIO_CAMBIO:
+        // si el stock es insuficiente, no se guarda nada y se informa SIN_STOCK.
         if (typeof stock === 'number' && stock < item.cantidad) {
           availabilityItems.push({
             productId: item.productId,
@@ -52,15 +45,24 @@ function createAvailabilityService({ repository = cartRepository, catalog = cata
             estado: 'SIN_STOCK',
             precioAnterior: item.precioUnitario,
           });
-        } else {
-          availabilityItems.push({
-            productId: item.productId,
-            cantidad: item.cantidad,
-            stock: stock === undefined ? null : stock,
-            estado: 'PRECIO_CAMBIO',
-            precioAnterior: item.precioUnitario,
-          });
+          continue;
         }
+        // Stock suficiente (o null/undefined): se guarda el nuevo precio y se informa PRECIO_CAMBIO.
+        const updatedItem = {
+          productId: item.productId,
+          nombre: product.nombre,
+          precioUnitario: product.precio,
+          cantidad: item.cantidad,
+        };
+        await repository.saveItem(userId, updatedItem);
+        availabilityItems.push({
+          productId: item.productId,
+          cantidad: item.cantidad,
+          stock: stock === undefined ? null : stock,
+          estado: 'PRECIO_CAMBIO',
+          precioAnterior: item.precioUnitario,
+          precioUnitario: product.precio,
+        });
         continue;
       }
 
