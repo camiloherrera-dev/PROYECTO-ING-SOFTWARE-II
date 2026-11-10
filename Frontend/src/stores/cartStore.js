@@ -8,10 +8,10 @@ const EMPTY = {
 };
 
 export const useCartStore = defineStore('cart', {
-  state: () => ({ cart: { ...EMPTY }, loading: false, error: null }),
+  state: () => ({ cart: { ...EMPTY }, loading: false, error: null, recuperacion: null }),
   getters: {
     totalItems: (s) => s.cart.items.reduce((n, i) => n + i.cantidad, 0),
-    isEmpty: (s) => s.cart.items.length === 0,
+isEmpty: (s) => s.cart.items.length === 0,
     descuentoCarrito: (s) => s.cart.descuentosAplicados.find((d) => d.productId === null) || null,
     reglasDe: (s) => (productId) => s.cart.descuentosAplicados.filter((d) => d.productId === productId),
   },
@@ -21,6 +21,15 @@ export const useCartStore = defineStore('cart', {
     setQuantity(productId, cantidad) { return this._run(() => api.updateQuantity(productId, cantidad)); },
     remove(productId) { return this._run(() => api.removeItem(productId)); }, // HU-04
     clear() { return this._run(() => api.clearCart()); },                      // HU-05
+    // HU-12: carga el carrito y guarda el bloque de recuperación aparte
+    recover() {
+      return this._run(async () => {
+        const { recuperacion, ...carrito } = await api.recoverCart();
+        this.recuperacion = recuperacion || null;
+        return carrito;
+      });
+    },
+    dismissRecovery() { this.recuperacion = null; },
     async _run(call) {
       this.loading = true;
       this.error = null;
@@ -28,7 +37,7 @@ export const useCartStore = defineStore('cart', {
         // { ...EMPTY, ...} protege la vista si el backend aún no envía los campos nuevos
         this.cart = { ...EMPTY, ...(await call()) };
       } catch (e) {
-        this.error = e.mensaje || 'Ocurrió un error inesperado';
+        this.error = e.mensagem || 'Ocurrió un error inesperado';
       } finally {
         this.loading = false;
       }

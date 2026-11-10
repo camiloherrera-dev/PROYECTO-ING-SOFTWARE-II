@@ -5,10 +5,11 @@ import { useCheckoutStore } from '../stores/checkoutStore';
 import { money } from '../utils/money';
 import QuantityControl from './QuantityControl.vue';
 import CartSummary from './CartSummary.vue';
+import CartRecoveryBanner from './CartRecoveryBanner.vue'; // Sprint 4
 
 const cart = useCartStore();
 const co = useCheckoutStore(); // Sprint 3
-onMounted(() => cart.load());
+onMounted(() => cart.recover()); // Sprint 4: carga el carrito y trae el aviso de recuperación
 
 // HU-09: mensaje por ítem según la última verificación de disponibilidad
 function avisoDisponibilidad(productId) {
@@ -33,9 +34,11 @@ function onClear() {
       <button v-if="!cart.isEmpty" class="vaciar" :disabled="cart.loading" @click="onClear">
         Vaciar carrito
       </button>
-    </header>
+</header>
 
-    <p v-if="cart.loading">Cargando…</p>
+  <CartRecoveryBanner /> <!-- Sprint 4: justo debajo de la cabecera -->
+
+  <p v-if="cart.loading">Cargando…</p>
     <p v-if="cart.error" role="alert">{{ cart.error }}</p>
     <p v-if="!cart.loading && cart.isEmpty">Tu carrito está vacío.</p>
 

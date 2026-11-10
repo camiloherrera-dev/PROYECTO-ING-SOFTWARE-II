@@ -4,11 +4,12 @@ app.use(express.json());
 
 // Copia del contrato real de Catálogo (acuerdo del 27/10/2026). Los ids reales son ObjectId de
 // MongoDB; aquí se usan prod_00X para la demo.
-const productos = {
+const crearProductos = () => ({
   prod_001: { id: 'prod_001', nombre: 'Camiseta básica algodón', precio: 49900, activo: true, stock: 20, categoria: 'cat-ropa' },
   prod_002: { id: 'prod_002', nombre: 'Jean clásico', precio: 129900, activo: true, stock: 10, categoria: 'cat-ropa' },
   prod_003: { id: 'prod_003', nombre: 'Gorra edición limitada', precio: 35000, activo: false, stock: 0, categoria: 'cat-accesorios' },
-};
+});
+let productos = crearProductos();
 const descuentos = {}; // referencia → items descontados (PROPUESTO: hoy Catálogo no guarda referencia)
 
 // Como Catálogo: inactivo responde 200 con activo: false; 404 solo si el id no existe.
@@ -59,4 +60,9 @@ app.patch('/__test/productos/:id', (req, res) => {
   res.json(p);
 });
 
-app.listen(4000, () => console.log('Catalog mock escuchando en :4000'));
+// SOLO PARA PRUEBAS: devuelve el mock a su estado inicial
+app.post('/__test/reset', (req, res) => {
+  productos = crearProductos();
+  Object.keys(descuentos).forEach((k) => delete descuentos[k]);
+  res.sendStatus(204);
+});
