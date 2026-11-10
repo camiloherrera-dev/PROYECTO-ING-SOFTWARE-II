@@ -14,6 +14,9 @@ const mockRedis = {
   hset: jest.fn(),
   get: jest.fn(),
   checkoutConfirm: jest.fn(),
+  llen: jest.fn(),
+  lrange: jest.fn(),
+  mget: jest.fn(),
 };
 jest.mock('../src/redis/redisClient', () => ({ redis: mockRedis }));
 
@@ -79,4 +82,22 @@ test('getActiveCheckoutId y getPedido leen sus claves', async () => {
   expect(mockRedis.get).toHaveBeenCalledWith('checkout-usuario:usr_1');
   expect(await repo.getPedido('ped_1')).toEqual({ pedidoId: 'ped_1' });
   expect(await repo.getPedido('ped_x')).toBeNull();
+});
+
+test('listPedidosRecientes: del más reciente al más antiguo y omite los vencidos', async () => {
+  mockRedis.llen.mockResolvedValue(3);
+  mockRedis.lrange.mockResolvedValue(['ped_3', 'ped_2', 'ped_1']);
+  mockRedis.mget.mockResolvedValue([JSON.stringify({ pedidoId: 'ped_3' }), null, JSON.stringify({ pedidoId: 'ped_1' })]);
+  expect(await repo.listPedidosRecientes('usr_1', 10, 0)).toEqual({
+    total: 3, pedidos: [{ pedidoId: 'ped_3' }, { pedidoId: 'ped_1' }],
+  });
+  expect(mockRedis.lrange).toHaveBeenCalledWith('pedidos-usuario:usr_1', 0, 9);
+  expect(mockRedis.mget).toHaveBeenCalledWith(['pedido:ped_3', 'pedido:ped_2', 'pedido:ped_1']);
+});
+
+test('listPedidosRecientes sin pedidos no consulta mget', async () => {
+  mockRedis.llen.mockResolvedValue(0);
+  mockRedis.lrange.mockResolvedValue([]);
+  expect(await repo.listPedidosRecientes('usr_1', 10, 0)).toEqual({ total: 0, pedidos: [] });
+  expect(mockRedis.mget).not.toHaveBeenCalled();
 });
