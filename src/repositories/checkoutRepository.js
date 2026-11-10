@@ -82,7 +82,18 @@ async function getPedido(pedidoId) {
   return raw ? JSON.parse(raw) : null;
 }
 
+// Respaldo del historial: pedidos recientes del usuario en Redis (30 días), el más reciente primero
+async function listPedidosRecientes(userId, limit, offset) {
+  const total = await redis.llen(kPedidos(userId));
+  const ids = await redis.lrange(kPedidos(userId), offset, offset + limit - 1);
+  if (ids.length === 0) return { total, pedidos: [] };
+  const crudos = await redis.mget(ids.map(kPedido));
+  // Un pedido cuyo TTL ya venció llega como null: se omite
+  return { total, pedidos: crudos.filter(Boolean).map((raw) => JSON.parse(raw)) };
+}
+
 module.exports = {
   saveCheckout, getCheckout, getActiveCheckoutId, startConfirmation,
   resetConfirmation, savePedidoYConfirmar, getPedido, execOrThrow,
+  listPedidosRecientes,
 };

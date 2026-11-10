@@ -1,11 +1,13 @@
 const express = require('express');
 const { authJwt } = require('../middlewares/authJwt');
+const { rateLimit } = require('../middlewares/security');
 const ctrl = require('../controllers/cartController');
 const checkoutCtrl = require('../controllers/checkoutController');
 
 // Las rutas no tienen lógica: solo asocian método y ruta con el controlador.
 const router = express.Router();
 router.use(authJwt); // RT-01: antes de cualquier ruta
+router.use(rateLimit); // Sprint 4: límite por usuario, después de autenticar
 
 router.get('/', ctrl.getCart); // HU-02 (Camilo)
 router.delete('/', ctrl.clearCart); // HU-05 (Santiago)

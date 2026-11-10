@@ -34,3 +34,6 @@ export const checkAvailability = () => request('/disponibilidad');              
 export const createCheckout = () => request('/checkout', { method: 'POST' });      // HU-08
 export const confirmCheckout = (checkoutId) =>
   request(`/checkout/${encodeURIComponent(checkoutId)}/confirmar`, { method: 'POST' }); // HU-10
+
+// Sprint 4
+export const recoverCart = () => request('/recuperar'); // HU-12
