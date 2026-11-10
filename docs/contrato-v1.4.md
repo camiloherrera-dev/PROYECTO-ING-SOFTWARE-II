@@ -443,7 +443,7 @@ Los descuentos se calculan dentro del mismo proceso del Carrito (`src/discounts/
 | `CANTIDAD_MINIMA` | `productIds`, `cantidadMinima`, `porcentaje` | `DESC-CAMISETA-3X`: 15% en `prod_001` desde 3 unidades | 3 camisetas (149.700) → 22.455; 2 camisetas → 0 |
 | `MONTO_MINIMO_CARRITO` | `montoMinimo`, `porcentaje` | `DESC-CARRITO-300K`: 5% si lo que queda tras los descuentos por ítem es ≥ 300.000 | 361.065 → 18.053 |
 
-Cada regla tiene además `id`, `descripcion`, `activa` y, opcionales, `vigenteDesde` / `vigenteHasta`. Las reglas se leen con `getActiveRules()`: desde el Sprint 4 la fuente es la tabla `reglas_descuento` de PostgreSQL, con una caché de `DISCOUNT_RULES_CACHE_MS` (60 s); si la base falla se usan las reglas de `src/discounts/discountRules.js`. Las tres reglas de la demo vienen sembradas en la migración. *(Stretch SCRUM-27: si no entra en el Sprint 4, las reglas siguen en el código y el comportamiento visible es el mismo.)*
+Cada regla tiene además `id`, `descripcion`, `activa` y, opcionales, `vigenteDesde` / `vigenteHasta`. Las reglas se leen con `getActiveRules()` desde `src/discounts/discountRules.js`. La tabla `reglas_descuento` ya existe en PostgreSQL con las tres reglas de la demo sembradas, pero leerlas de ahí (con caché de `DISCOUNT_RULES_CACHE_MS` y respaldo en el código) es el stretch SCRUM-27 y **todavía no está activo**. Cuando entre, solo cambia `getActiveRules()` y el comportamiento visible es el mismo.
 
 ### 6.2 Política de aplicación
 
@@ -534,7 +534,7 @@ Redis sigue siendo la fuente del carrito, del checkout y del respaldo del histor
 | --- | --- | --- |
 | `pedidos` | Clave `pedido_id`; `checkout_id` único; `user_id`, `estado`, totales (`subtotal`, `descuento_total`, `total`), `creado_en` y `snapshot` JSONB | El índice por usuario y fecha sirve al listado. `checkout_id` único hace idempotente el registro |
 | `pedido_items` | Un renglón por producto del pedido | Se borra en cascada con el pedido |
-| `reglas_descuento` | Reglas del Módulo Descuentos | Con tres reglas de demostración sembradas |
+| `reglas_descuento` | Reglas del Módulo Descuentos | Con tres reglas de demostración sembradas. Todavía no se lee (stretch SCRUM-27) |
 | `schema_migrations` | Migraciones aplicadas | La llena el corredor de migraciones (`db/migrations/*.sql`) |
 
 | Operación | Implementación |
@@ -567,7 +567,7 @@ La clave del checkout dura más que su vigencia para poder responder confirmacio
 | `DB_POOL_MAX` (nuevo) | `5` | Tamaño del pool de conexiones |
 | `AUTO_MIGRATE` (nuevo) | `true` | Con `false` no se corren migraciones al arrancar |
 | `CART_INACTIVITY_HOURS` (nuevo) | `1` | Umbral de inactividad de HU-12 |
-| `DISCOUNT_RULES_CACHE_MS` (nuevo) | `60000` | Caché de las reglas en PostgreSQL |
+| `DISCOUNT_RULES_CACHE_MS` (nuevo) | `60000` | Caché de las reglas en PostgreSQL (se usa cuando entre SCRUM-27) |
 | `RATE_LIMIT_MAX` (nuevo) | `120` | Peticiones por usuario y ventana |
 | `RATE_LIMIT_WINDOW_MS` (nuevo) | `60000` | Ventana del límite de peticiones |
 | `SHUTDOWN_TIMEOUT_MS` (nuevo) | `10000` | Tiempo máximo del cierre ordenado |
@@ -596,5 +596,5 @@ La clave del checkout dura más que su vigencia para poder responder confirmacio
 - **Recuperar revalida contra Catálogo**, igual que `GET /api/carrito`: precios cambiados y productos no disponibles se informan en `cambios`.
 - **Carrito vencido:** pasados 7 días sin actividad Redis lo borra y `/recuperar` responde `hayCarrito: false`.
 - **Arranque con PostgreSQL caído:** el servicio arranca igual, sin histórico, y `/ready` responde `degraded`. Sin Redis no arranca.
-- **Reglas en PostgreSQL:** se leen con caché de 60 segundos y, si la base falla, se usan las reglas del código. Los descuentos nunca bloquean el carrito.
+- **Reglas en PostgreSQL (stretch SCRUM-27, pendiente):** cuando entre, se leerán con caché de 60 segundos y, si la base falla, se usarán las reglas del código. Hoy las reglas salen del código. Los descuentos nunca bloquean el carrito.
 - **Limitación conocida:** un pedido confirmado mientras PostgreSQL está caído queda solo en Redis (30 días); no hay reconciliación automática hacia PostgreSQL.

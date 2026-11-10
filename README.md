@@ -173,7 +173,7 @@ docs/                      Plan de pruebas, colección Postman, contrato v1.4
 
 ## Reglas de descuento
 
-El Módulo Descuentos (`src/discounts/`) calcula los descuentos de cada respuesta del carrito. Las reglas viven en la tabla `reglas_descuento` (con las del código como respaldo) y se leen con una caché de 60 segundos.
+El Módulo Descuentos (`src/discounts/`) calcula los descuentos de cada respuesta del carrito. Hoy las reglas se leen de `src/discounts/discountRules.js`. La tabla `reglas_descuento` ya está creada y sembrada con las mismas tres reglas; leerlas desde PostgreSQL con caché de 60 segundos es el stretch SCRUM-27, pendiente.
 
 | Regla | Tipo | Efecto |
 | --- | --- | --- |
