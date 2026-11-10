@@ -179,3 +179,87 @@ describe('POST /api/carrito/items (HU-01)', () => {
     expect(repo.addItem).toHaveBeenCalledWith('usr_1', expect.anything());
   });
 });
+
+describe('DELETE /api/carrito/items/:productId (HU-04)', () => {
+  test('elimina el producto y devuelve el total recalculado', async () => {
+    repo.removeItem.mockResolvedValue(true);
+    repo.getAllItems.mockResolvedValue([camiseta]);
+
+    const res = await request(app).delete('/api/carrito/items/prod_002').set(auth());
+
+    expect(res.status).toBe(200);
+    expect(repo.removeItem).toHaveBeenCalledWith('usr_1', 'prod_002');
+    expect(res.body.items).toEqual([expect.objectContaining({ productId: 'prod_001', subtotalItem: 99800 })]);
+    expect(res.body.total).toBe(99800);
+    expect(catalog.getProduct).not.toHaveBeenCalled();
+  });
+
+  test('eliminar el último producto devuelve carrito vacío y total cero', async () => {
+    repo.removeItem.mockResolvedValue(true);
+    repo.getAllItems.mockResolvedValue([]);
+
+    const res = await request(app).delete('/api/carrito/items/prod_001').set(auth());
+
+    expect(res.status).toBe(200);
+    expect(repo.removeItem).toHaveBeenCalledWith('usr_1', 'prod_001');
+    expect(res.body).toMatchObject({ items: [], subtotal: 0, descuentoTotal: 0, total: 0 });
+  });
+
+  test('producto fuera del carrito responde 404 PRODUCTO_NO_ENCONTRADO', async () => {
+    repo.removeItem.mockResolvedValue(false);
+
+    const res = await request(app).delete('/api/carrito/items/prod_002').set(auth());
+
+    expect(res.status).toBe(404);
+    expect(res.body.codigo).toBe('PRODUCTO_NO_ENCONTRADO');
+    expect(repo.getAllItems).not.toHaveBeenCalled();
+  });
+
+  test('sin token responde 401 y no elimina nada', async () => {
+    const res = await request(app).delete('/api/carrito/items/prod_001');
+
+    expect(res.status).toBe(401);
+    expect(res.body.codigo).toBe('NO_AUTORIZADO');
+    expect(repo.removeItem).not.toHaveBeenCalled();
+  });
+});
+
+describe('DELETE /api/carrito (HU-05)', () => {
+  test('vacía el carrito y devuelve totales en cero', async () => {
+    repo.clearCart.mockResolvedValue();
+
+    const res = await request(app).delete('/api/carrito').set(auth());
+
+    expect(res.status).toBe(200);
+    expect(repo.clearCart).toHaveBeenCalledWith('usr_1');
+    expect(res.body).toMatchObject({ userId: 'usr_1', items: [], subtotal: 0, descuentoTotal: 0, total: 0 });
+  });
+
+  test('es idempotente: vaciar un carrito inexistente también responde 200', async () => {
+    repo.clearCart.mockResolvedValue();
+
+    const res = await request(app).delete('/api/carrito').set(auth('usr_nuevo'));
+
+    expect(res.status).toBe(200);
+    expect(repo.clearCart).toHaveBeenCalledWith('usr_nuevo');
+    expect(res.body.items).toEqual([]);
+  });
+
+  test('el usuario solo puede vaciar el carrito indicado por su token', async () => {
+    repo.clearCart.mockResolvedValue();
+
+    const res = await request(app).delete('/api/carrito?userId=usr_otro').set(auth('usr_9'));
+
+    expect(res.status).toBe(200);
+    expect(repo.clearCart).toHaveBeenCalledWith('usr_9');
+    expect(repo.clearCart).not.toHaveBeenCalledWith('usr_otro');
+  });
+
+  test('sin token responde 401 y no borra ningún carrito', async () => {
+    const res = await request(app).delete('/api/carrito');
+
+    expect(res.status).toBe(401);
+    expect(res.body.codigo).toBe('NO_AUTORIZADO');
+    expect(repo.clearCart).not.toHaveBeenCalled();
+  });
+});

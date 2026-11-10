@@ -1,5 +1,4 @@
 const cartService = require('../services/cartService');
-const availabilityService = require('../services/availabilityService');
 
 // RNF-02: el userId SIEMPRE viene de req.userId (lo pone authJwt desde el token).
 // Nunca se lee de req.body, req.query ni req.params.
@@ -23,10 +22,10 @@ module.exports = {
     res.status(created ? 201 : 200).json(cart); // 201 = primera vez, 200 = ya existía
   }),
 
-  // HU-09 (Jose David): verificar disponibilidad
-  checkAvailability: handle(async (req, res) => {
-    res.status(200).json(await availabilityService.checkAvailability(req.userId));
+  removeItem: handle(async (req, res) => { // HU-04 (Santiago, movido desde la ruta)
+    res.status(200).json(await cartService.removeItem(req.userId, req.params.productId));
   }),
-
-  // removeItem y clearCart: Santiago
+  clearCart: handle(async (req, res) => { // HU-05 (Santiago, movido desde la ruta)
+    res.status(200).json(await cartService.clearCart(req.userId));
+  }),
 };
