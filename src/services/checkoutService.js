@@ -3,6 +3,7 @@ const cartRepository = require('../repositories/cartRepository');
 const checkoutRepository = require('../repositories/checkoutRepository');
 const catalogClient = require('../clients/catalogClient');
 const availabilityService = require('./availabilityService');
+const historyService = require('./historyService');
 const AppError = require('../errors/AppError');
 const { buildCartResponse } = require('./cartTotals');
 const { checkoutVigenciaSeconds = 900 } = require('../config/env');
@@ -12,6 +13,7 @@ function createCheckoutService({
   checkouts = checkoutRepository,
   catalog = catalogClient,
   availability = availabilityService,
+  history = historyService,
   buildResponse = buildCartResponse,
   now = () => Date.now(),
 } = {}) {
@@ -97,6 +99,9 @@ function createCheckoutService({
       await checkouts.resetConfirmation(checkoutId).catch(() => {});
       throw new AppError(500, 'ERROR_INTERNO', 'No se pudo guardar el pedido; el stock fue devuelto');
     }
+
+    // HU-11: Registrar en el histórico secundario (PostgreSQL). Nunca lanza.
+    await history.recordOrder(pedido);
 
     // 3) Vaciar el carrito. Si falla, el pedido ya existe y no se deshace.
     try {
