@@ -66,3 +66,5 @@ app.post('/__test/reset', (req, res) => {
   Object.keys(descuentos).forEach((k) => delete descuentos[k]);
   res.sendStatus(204);
 });
+
+app.listen(4000, () => console.log('Catalog mock escuchando en :4000'));
