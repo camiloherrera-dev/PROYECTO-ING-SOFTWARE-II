@@ -3,6 +3,7 @@ const { authJwt } = require('../middlewares/authJwt');
 const { rateLimit } = require('../middlewares/security');
 const ctrl = require('../controllers/cartController');
 const checkoutCtrl = require('../controllers/checkoutController');
+const orderCtrl = require('../controllers/orderController');
 
 // Las rutas no tienen lógica: solo asocian método y ruta con el controlador.
 const router = express.Router();
@@ -18,5 +19,8 @@ router.delete('/items/:productId', ctrl.removeItem); // HU-04 (Santiago)
 router.get('/disponibilidad', checkoutCtrl.checkAvailability); // HU-09 (Jose David)
 router.post('/checkout', checkoutCtrl.createCheckout); // HU-08 (Santiago)
 router.post('/checkout/:checkoutId/confirmar', checkoutCtrl.confirmCheckout); // HU-10 (Camilo)
+
+router.get('/pedidos', orderCtrl.listOrders); // HU-11 (Santiago)
+router.get('/pedidos/:pedidoId', orderCtrl.getOrder); // HU-11 (Santiago)
 
 module.exports = router;
