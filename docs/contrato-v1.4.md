@@ -71,7 +71,7 @@ Fuera de este contrato: pago real (el pedido nace `CONFIRMADO` sin cobro), despl
 - **Cantidades:** enteros `>= 1`. `1.5`, `0`, negativos o `"3"` (texto) responden `400 VALIDACION_FALLIDA`.
 - **Precios:** el precio y el nombre del producto salen siempre de Catálogo, nunca del cliente (RF-13, RF-14).
 - **Fechas:** ISO 8601 en UTC (`2026-11-05T15:30:00.000Z`).
-- **CORS (Kong):** origen `http://localhost:5173`; métodos `GET, POST, PUT, DELETE, OPTIONS`; cabeceras `Authorization, Content-Type`.
+- **CORS (Kong):** orígenes `http://localhost:5173` y cualquier `http(s)://localhost` o `127.0.0.1` con puerto (integración local con el Host App); métodos `GET, POST, PUT, DELETE, OPTIONS`; cabeceras `Authorization, Content-Type`; expone `X-RateLimit-Limit`, `X-RateLimit-Remaining` y `Retry-After`. Al desplegar, la expresión se reemplaza por los orígenes reales en `kong/kong.yml`.
 - **Cabeceras de seguridad (nuevo):** todas las respuestas llevan `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` y `Cache-Control: no-store`.
 - **Límite de peticiones (nuevo):** por usuario (claim `sub`), `RATE_LIMIT_MAX` peticiones (120) por ventana de `RATE_LIMIT_WINDOW_MS` (60 s). Cada respuesta de `/api/carrito/*` trae `X-RateLimit-Limit` y `X-RateLimit-Remaining`; al superarlo responde `429 DEMASIADAS_PETICIONES` con `Retry-After` (segundos). El contador vive en la memoria de cada instancia.
 - **Salud (puerto 3000, sin autenticación y sin Kong):**
@@ -571,6 +571,9 @@ La clave del checkout dura más que su vigencia para poder responder confirmacio
 | `RATE_LIMIT_MAX` (nuevo) | `120` | Peticiones por usuario y ventana |
 | `RATE_LIMIT_WINDOW_MS` (nuevo) | `60000` | Ventana del límite de peticiones |
 | `SHUTDOWN_TIMEOUT_MS` (nuevo) | `10000` | Tiempo máximo del cierre ordenado |
+| `DOCKER_CATALOG_BASE_URL` (nuevo, solo Docker Compose) | mock | `CATALOG_BASE_URL` que recibe el contenedor. Catálogo real directo: `http://host.docker.internal:8080` |
+| `KONG_PROXY_PORT`, `KONG_ADMIN_PORT` (nuevo, solo Docker Compose) | `8000`, `8001` | Puertos de nuestro Kong en el host; `8100`/`8101` para convivir con el Kong de Catálogo |
+| `POSTGRES_HOST_PORT` (nuevo, solo Docker Compose) | `5432` | Puerto de PostgreSQL en el host |
 | `JWT_SECRET` | `dev-secret-change-me` | Secreto HS256. En producción es obligatorio cambiarlo: el servicio no arranca con el valor por defecto |
 
 ## 10. Reglas de negocio

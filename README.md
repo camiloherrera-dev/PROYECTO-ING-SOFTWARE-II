@@ -198,7 +198,7 @@ Respuesta del equipo de Catálogo del 27/10/2026 (responsable en Carrito: Juan D
 | Token | Ningún endpoint de Catálogo valida token (Keycloak no está integrado en esta entrega) |
 | URL | Por su Kong: `http://localhost:8000/api/catalogo`. Directo: `http://localhost:8080`, sin el prefijo. Por ahora cada equipo levanta su propio Kong |
 
-**Configuración:** `CATALOG_BASE_URL` incluye el prefijo. Mock: `http://catalog-mock:4000/api/catalogo` (por defecto en `docker-compose.yml`). Catálogo real directo desde Docker: `http://host.docker.internal:8080`. Nuestro Kong y el de Catálogo usan los dos el puerto 8000, así que para integrar se usa el acceso directo.
+**Configuración:** `CATALOG_BASE_URL` incluye el prefijo. Mock: `http://catalog-mock:4000/api/catalogo` (por defecto en Docker Compose). Ver "Integración con otros equipos" para apuntar al Catálogo real.
 
 **Propuesto a Catálogo, pendiente de respuesta:**
 
@@ -209,6 +209,20 @@ Respuesta del equipo de Catálogo del 27/10/2026 (responsable en Carrito: Juan D
 **Riesgo conocido** hasta que exista la `referencia`: si la respuesta de Catálogo llega después de nuestro timeout, el carrito responde 503 y un reintento del cliente descontaría el stock dos veces. El mock ya implementa la propuesta completa.
 
 El historial de la integración del Sprint 1 está en `docs/historico/INTEGRACION-EQUIPO.md`.
+
+## Integración con otros equipos
+
+Todo se configura en `.env`, sin editar `docker-compose.yml` (ver el bloque "Integración" de `.env.example`).
+
+| Necesidad | Variable en `.env` |
+| --- | --- |
+| Usar el Catálogo real en vez del mock | `DOCKER_CATALOG_BASE_URL=http://host.docker.internal:8080` (directo, sin prefijo) |
+| Levantar nuestro Kong junto al de Catálogo (los dos usan 8000) | `KONG_PROXY_PORT=8100` y `KONG_ADMIN_PORT=8101`. Nuestra API queda en `http://localhost:8100/api/carrito`; para el frontend, `KONG_URL=http://localhost:8100 npm run dev`; para el E2E, `BASE_URL=http://localhost:8100` |
+| PostgreSQL local ocupando el 5432 | `POSTGRES_HOST_PORT=5433` |
+
+- **Autenticación:** el Carrito acepta un JWT HS256 firmado con `JWT_SECRET`, con el usuario en el claim `sub`. Quien emita los tokens (Host App o login) debe usar el mismo secreto. Keycloak queda fuera de alcance.
+- **CORS:** Kong acepta el frontend del Carrito (`localhost:5173`) y cualquier `localhost` o `127.0.0.1` con puerto, así que un Host App local funciona sin cambios. Al desplegar, se reemplaza por los orígenes reales en `kong/kong.yml`.
+- **Contrato:** `docs/contrato-v1.4.md`.
 
 ## Limitaciones conocidas
 
