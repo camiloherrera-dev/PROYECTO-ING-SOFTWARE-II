@@ -9,6 +9,13 @@ services:
     plugins:
       - name: cors
         config:
-          origins: ["http://localhost:5173"]
+          # Integración local: el frontend del Carrito (5173) y cualquier Host App servida desde
+          # localhost o 127.0.0.1 en otro puerto. Al desplegar, reemplazar la expresión por los orígenes reales.
+          origins:
+            - "http://localhost:5173"
+            - "^https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?$"
           methods: [GET, POST, PUT, DELETE, OPTIONS]
           headers: [Authorization, Content-Type]
+          # Para que el navegador deje leer el límite de peticiones (429)
+          exposed_headers: [X-RateLimit-Limit, X-RateLimit-Remaining, Retry-After]
+          max_age: 3600

@@ -16,8 +16,8 @@ services:
       POSTGRES_USER: carrito
       POSTGRES_PASSWORD: carrito_dev
       POSTGRES_DB: carrito
-    # Si el 5432 de tu computador está ocupado, usa "5433:5432" y el puerto 5433 en tu DATABASE_URL local
-    ports: ["5432:5432"]
+    # Si el 5432 de tu computador está ocupado, pon POSTGRES_HOST_PORT=5433 en .env y usa ese puerto en tu DATABASE_URL local
+    ports: ["${POSTGRES_HOST_PORT:-5432}:5432"]
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -42,7 +42,9 @@ services:
     env_file: [.env]
     environment:
       REDIS_URL: redis://redis:6379
-      CATALOG_BASE_URL: http://catalog-mock:4000/api/catalogo
+      # Catálogo visto DESDE el contenedor (no es el CATALOG_BASE_URL de .env, que es para correr fuera de Docker).
+      # Catálogo real directo: DOCKER_CATALOG_BASE_URL=http://host.docker.internal:8080 en .env
+      CATALOG_BASE_URL: ${DOCKER_CATALOG_BASE_URL:-http://catalog-mock:4000/api/catalogo}
       DATABASE_URL: postgres://carrito:carrito_dev@postgres:5432/carrito
     depends_on:
       redis: { condition: service_healthy }
@@ -60,7 +62,8 @@ services:
       KONG_ADMIN_LISTEN: 0.0.0.0:8001
     volumes:
       - ./kong:/kong:ro
-    ports: ["8000:8000", "8001:8001"]
+    # El Kong de Catálogo también usa el 8000: para levantar los dos, pon KONG_PROXY_PORT=8100 (y KONG_ADMIN_PORT=8101) en .env
+    ports: ["${KONG_PROXY_PORT:-8000}:8000", "${KONG_ADMIN_PORT:-8001}:8001"]
     depends_on: [carrito]
 
 volumes:
