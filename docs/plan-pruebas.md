@@ -39,19 +39,19 @@ Columna **Auto** = se ejecuta en Postman con aserciones. **Manual** = se ejecuta
 | TC-04 | RF-14: precio oficial de Catálogo | POST con `precioUnitario: 1` en el body | Se usa el precio del mock | Sí | | |
 | TC-05 | RF-13: producto inactivo | POST `prod_003` | 404 `PRODUCTO_NO_ENCONTRADO` | Sí | | |
 | TC-06 | RF-13: producto inexistente | POST `prod_999` | 404 `PRODUCTO_NO_ENCONTRADO` | Sí | | |
-| TC-07 | Validación de cantidad | POST con 0, -1, 1.5 y `"2"` | 400 `VALIDACION_FALLIDA` (4 requests: a–d) | Sí | | |
+| TC-07 | Validación de cantidad | POST con 0, -1, 1.5 y `"2"` | 400 `VALIDACION_FALLIDA` (4 requests: a–d) | Sí | Pasa (a–d) | Ejecución individual en Postman reportada por Sofía el 2026-11-11; las cuatro respuestas incluyeron `VALIDACION_FALLIDA`, “La cantidad debe ser un entero mayor a 0”. |
 | TC-08 | HU-02: consultar productos | GET con 2 productos | Lista con nombre, cantidad y precio | Sí | | |
 | TC-09 | HU-02: subtotal y total | GET | subtotal = Σ(precio × cantidad); total = subtotal | Sí | | |
-| TC-10 | HU-02: carrito vacío | GET de usuario nuevo | 200; `items: []` y totales en 0 | Sí | | |
+| TC-10 | HU-02: carrito vacío | GET de usuario nuevo | 200; `items: []` y totales en 0 | Sí | Pasa | Postman reportado por Sofía el 2026-11-11: `items: []`; subtotal, descuentos y total en 0; `descuentosDisponibles: true`. |
 | TC-11 | RF-16: cambio de precio | PATCH al mock y GET | Precio nuevo + `precioAnterior` | Sí | | |
 | TC-12 | RF-16: producto desactivado | PATCH `activo:false` y GET | `disponible:false`; no suma al total | Sí | | |
 | TC-13 | HU-03: aumentar cantidad | PUT `prod_001` con 5 (estaba en 3) | 200; cantidad = 5 | Sí | | |
 | TC-14 | HU-03: disminuir cantidad | PUT `prod_001` con 1 | 200; cantidad = 1 | Sí | | |
 | TC-15 | HU-03: total actualizado | GET tras TC-13 | `totalItem` = 5 × precio | Sí | | |
-| TC-16 | HU-03: cantidad inválida | PUT con 0, -2 y 1.5 | 400; el carrito no cambia (a, b, c, d) | Sí | | |
-| TC-17 | HU-03: producto fuera del carrito | PUT `prod_002` sin haberlo agregado | 404 `PRODUCTO_NO_ENCONTRADO` | Sí | | |
-| TC-18 | RT-01: sin token | GET, POST y PUT sin Authorization | 401 `NO_AUTORIZADO` (a, b, c) | Sí | | |
-| TC-19 | RT-01: token inválido | Token con firma incorrecta | 401 | Sí | | |
+| TC-16 | HU-03: cantidad inválida | PUT con 0, -2 y 1.5 | 400; el carrito no cambia (a, b, c, d) | Sí | Parcial (a–c) | Sofía reporta que TC-16a, TC-16b y TC-16c respondieron `VALIDACION_FALLIDA`, “La cantidad debe ser un entero mayor a 0”. TC-16d (GET para verificar que el carrito no cambió) aún requiere confirmar un carrito previamente cargado; no se marca aprobado con el carrito vacío. |
+| TC-17 | HU-03: producto fuera del carrito | PUT `prod_002` sin haberlo agregado | 404 `PRODUCTO_NO_ENCONTRADO` | Sí | Pasa | Postman reportado por Sofía el 2026-11-11: `PRODUCTO_NO_ENCONTRADO`, “El producto no está en el carrito”. |
+| TC-18 | RT-01: sin token | GET, POST y PUT sin Authorization | 401 `NO_AUTORIZADO` (a, b, c) | Sí | Pasa (a–c) | Ejecución individual en Postman reportada por Sofía el 2026-11-11; las tres respuestas incluyeron `NO_AUTORIZADO`, “Token no proporcionado”. |
+| TC-19 | RT-01: token inválido | Token con firma incorrecta | 401 | Sí | Pasa | Postman reportado por Sofía el 2026-11-11: `NO_AUTORIZADO`, “Token inválido o expirado”. |
 | TC-20 | RNF-02: userId del token | POST con `userId` en body y en query | Se usa el del token | Sí | | |
 | TC-21 | Aislamiento entre usuarios | Dos tokens distintos | Cada uno ve solo su carrito (a, b) | Sí | | |
 | TC-22 | RNF-03: persistencia | `redis-cli HGETALL carrito:{userId}` | El hash existe con los ítems | **Manual** | Pasa (claves inspeccionadas) | resultados-qa-sprint2-2026-10-22.md |
@@ -124,6 +124,14 @@ docker exec -it carrito_redis redis-cli TTL carrito:<userId>       # TC-23: ~604
 | `tests/cartRepository.test.js` | HU-01, HU-04 y HU-05 (repositorio) | Jeisson |
 | `tests/cartEndpoints.test.js` | Endpoints HU-01, HU-04 y HU-05 | Sofía (QA) |
 
+### Corrida automatizada en `develop` — 2026-11-11
+
+- Commit evaluado: `8cb8945`.
+- Pruebas Node: **26/26 aprobadas**.
+- Jest: **16 suites y 146/146 pruebas aprobadas**.
+- Jest mostró un aviso de operaciones asíncronas abiertas y no finalizó por sí solo; se interrumpió el proceso después de que reportó todas las suites aprobadas.
+- Esta corrida no reemplaza los casos Postman y no incluye `npm run test:integration` ni E2E.
+
 ## 6. Gestión de defectos
 
 - Cada fallo se reporta como **Bug** en Jira, vinculado a la historia (SCRUM-19, SCRUM-20 o SCRUM-21), con pasos para reproducir, resultado esperado, resultado obtenido y evidencia.
@@ -177,3 +185,30 @@ Plan añadido para cubrir disponibilidad, checkout, confirmación del pedido y p
 - TC-53 requiere levantar el servicio con `CHECKOUT_VIGENCIA_SECONDS=30`, crear un checkout, esperar más de 30 segundos y luego confirmarlo.
 - Para TC-57, usar `docker exec carrito_redis redis-cli --scan --pattern 'checkout:*'`, consultar el campo `estado` del hash de checkout y revisar el TTL de `pedido:{pedidoId}`.
 - Registrar los resultados y evidencia junto con la regresión final. La revisión final cubre TC-01 a TC-58 y `npm run e2e -- --pedido` después de integrar todas las historias.
+
+## 10. Sprint 4 — Histórico, recuperación, seguridad e infraestructura
+
+Los casos nuevos se ejecutan cuando las rutas y funcionalidades correspondientes estén integradas en `develop`. Los escenarios que requieren bases detenidas se hacen sobre el compose QA aislado.
+
+| ID | HU | Prueba | Resultado esperado | Tipo | Resultado | Evidencia / Bug |
+|---|---|---|---|---|---|---|
+| TC-59 | HU-11 | Confirmar un pedido y consultar `GET /pedidos` | 200; pedido reciente primero, fuente `POSTGRES`, unidades y totales correctos | Manual / Postman | Pendiente | Espera rutas HU-11 integradas. |
+| TC-60 | HU-11 | Consultar detalle del pedido de 3 camisetas y 2 jeans | 200 con ítems, descuentos y total 343.012 | Manual / Postman | Pendiente | Espera rutas HU-11 integradas. |
+| TC-61 | HU-11 | Consultar pedido de otro usuario | 404 `PEDIDO_NO_ENCONTRADO` | Manual / Postman | Pendiente | Espera rutas HU-11 integradas. |
+| TC-62 | HU-11 | Paginar 3 pedidos con `limit=2` y `offset=0`, luego `offset=2` | Primero 2 pedidos (total 3); después 1 pedido | Manual / Postman | Pendiente | Espera rutas HU-11 integradas. |
+| TC-63 | HU-11 | Enviar `limit=0`, `limit=51`, `limit=abc` y `offset=-1` | Cuatro respuestas 400 `VALIDACION_FALLIDA` | Manual / Postman | Pendiente | Espera rutas HU-11 integradas. |
+| TC-64 | HU-11/HU-12 | Consultar lista, detalle y recuperación sin token | 401 `NO_AUTORIZADO` en las tres peticiones | Manual / Postman | Pendiente | Ejecutar cuando las tres rutas estén integradas; una respuesta 401 de una ruta inexistente no confirma su funcionamiento. |
+| TC-65 | HU-11 | Confirmar dos veces el mismo checkout | Un único registro en `pedidos` para ese `checkout_id` | Manual / PostgreSQL | Pendiente | Espera ruta de historial integrada. |
+| TC-66 | HU-11 | Detener PostgreSQL, confirmar un pedido y consultar el historial | Confirmación 201; historial 200 con fuente `REDIS` | Manual / entorno | Pendiente | Espera rutas HU-11 integradas. |
+| TC-67 | HU-12 | Recuperar carrito con actividad reciente | 200; `recuperacion.inactivo: false` | Manual / Postman | Pendiente | Espera HU-12 y su ruta integradas. |
+| TC-68 | HU-12 | Simular 3 horas sin actividad y consultar recuperación dos veces | Primera: inactivo true y ≥180 min; segunda: inactivo false | Manual / Redis | Pendiente | Espera HU-12 y su ruta integradas. |
+| TC-69 | HU-12 | Cambiar precio en Catálogo y consultar recuperación | `cambios.preciosCambiados` informa `precioAnterior` | Manual / Postman | Pendiente | Espera HU-12 y mock de Catálogo activo. |
+| TC-70 | HU-12 | Desactivar producto en Catálogo y consultar recuperación | Producto en `cambios.noDisponibles`; no suma al total | Manual / Postman | Pendiente | Espera HU-12 y mock de Catálogo activo. |
+| TC-71 | HU-12 | Recuperar carrito de usuario sin carrito | 200; `hayCarrito: false`, `expiraEnSegundos: null` | Manual / Postman | Pendiente | Espera HU-12 y su ruta integradas. |
+| TC-72 | Seguridad | Revisar cabeceras HTTP de una respuesta | `X-Content-Type-Options: nosniff`; `Cache-Control: no-store` | Manual / Postman | Pasa | Sofía confirmó en Postman el 2026-11-11 ambos valores exactos en la respuesta de TC-18a. |
+| TC-73 | Seguridad | Configurar `RATE_LIMIT_MAX=5` y hacer 6 peticiones seguidas | Sexta responde 429 `DEMASIADAS_PETICIONES` con `Retry-After` | Manual / entorno | Pendiente | Requiere configurar y recrear solo el servicio QA. |
+| TC-74 | Infra | Consultar `/ready` con todo arriba, PostgreSQL detenido y Redis detenido | 200 `ok`; 200 `degraded`; 503 `down` | Manual / entorno | Pasa | Sofía reportó en Postman, el 2026-11-11, esta secuencia de cuerpos: `ok/up/up`; `degraded/up/down`; `ok/up/up` tras restaurar PostgreSQL; `down/down/up` con Redis detenido; y `ok/up/up` tras restaurarlo. |
+| TC-75 | Infra | Bajar y reconstruir el compose desde cero | Servicios arriba, migraciones aplicadas y 3 reglas sembradas | Manual / Docker | Pendiente | QA compose aislado; no ejecutar `down -v` sobre otros proyectos. |
+| TC-76 | HU-07 (stretch) | Desactivar `DESC-JEAN-10` en PostgreSQL y consultar tras vencer caché | Desaparece el descuento de los jeans | Manual / PostgreSQL | Pendiente | Caso stretch. |
+
+**Dependencia observada:** al revisar `develop` en `8cb8945`, `src/app.js` solo monta `cartRoutes`; esas rutas aún no incluyen `/pedidos` ni `/recuperar`. Por tanto, los casos funcionales de HU-11/HU-12 quedan pendientes de integrar esas rutas, aunque algunos componentes de backend ya estén en el repositorio.
