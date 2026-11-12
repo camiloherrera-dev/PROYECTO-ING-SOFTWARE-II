@@ -5,7 +5,8 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     port: 5173,
-    // Todas las llamadas /api/* van a Kong (:8000): así se evita CORS en desarrollo
-    proxy: { '/api': 'http://localhost:8000' },
+    // Todas las llamadas /api/* van a Kong: así se evita CORS en desarrollo.
+    // Si Kong corre en otro puerto (KONG_PROXY_PORT), arranca con KONG_URL=http://localhost:8100
+    proxy: { '/api': process.env.KONG_URL || 'http://localhost:8000' },
   },
 });
