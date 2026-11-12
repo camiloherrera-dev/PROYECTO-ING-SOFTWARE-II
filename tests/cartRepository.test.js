@@ -12,6 +12,9 @@ const mockRedis = {
   hgetall: jest.fn(),
   del: jest.fn(),
   cartAddItem: jest.fn(),
+  get: jest.fn(),
+  set: jest.fn(),
+  ttl: jest.fn(),
 };
 jest.mock('../src/redis/redisClient', () => ({ redis: mockRedis }));
 
@@ -66,7 +69,27 @@ test('removeItem: true si existía, false si no (HU-04)', async () => {
   expect(await repo.removeItem('usr_1', 'prod_404')).toBe(false);
 });
 
-test('clearCart borra la clave completa (HU-05)', async () => {
+test('clearCart borra el carrito y su registro de actividad (HU-05)', async () => {
   await repo.clearCart('usr_1');
-  expect(mockRedis.del).toHaveBeenCalledWith('carrito:usr_1');
+  expect(mockRedis.del).toHaveBeenCalledWith('carrito:usr_1', 'carrito-actividad:usr_1');
+});
+
+test('touchActividad guarda la fecha ISO con el TTL del carrito', async () => {
+  await repo.touchActividad('usr_1');
+  expect(mockRedis.set).toHaveBeenCalledWith(
+    'carrito-actividad:usr_1', expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/), 'EX', 604800);
+});
+
+test('getActividad devuelve la fecha guardada o null', async () => {
+  mockRedis.get.mockResolvedValueOnce('2026-11-10T12:00:00.000Z').mockResolvedValueOnce(null);
+  expect(await repo.getActividad('usr_1')).toBe('2026-11-10T12:00:00.000Z');
+  expect(await repo.getActividad('usr_1')).toBeNull();
+  expect(mockRedis.get).toHaveBeenCalledWith('carrito-actividad:usr_1');
+});
+
+test('getTtl devuelve los segundos restantes o null si el carrito no existe', async () => {
+  mockRedis.ttl.mockResolvedValueOnce(600000).mockResolvedValueOnce(-2).mockResolvedValueOnce(-1);
+  expect(await repo.getTtl('usr_1')).toBe(600000);
+  expect(await repo.getTtl('usr_1')).toBeNull();
+  expect(await repo.getTtl('usr_1')).toBeNull();
 });
