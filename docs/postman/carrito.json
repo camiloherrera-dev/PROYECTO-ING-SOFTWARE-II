@@ -6232,7 +6232,14 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{mockUrl}}/__test/reset"
+              "raw": "{{mockUrl}}/__test/reset",
+              "host": [
+                "{{mockUrl}}"
+              ],
+              "path": [
+                "__test",
+                "reset"
+              ]
             },
             "description": ""
           },
@@ -6259,7 +6266,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito"
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
             },
             "description": ""
           },
@@ -6290,7 +6304,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/items"
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
             },
             "description": "",
             "body": {
@@ -6330,7 +6352,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/items"
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
             },
             "description": "",
             "body": {
@@ -6366,7 +6396,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/checkout"
+              "raw": "{{baseUrl}}/api/carrito/checkout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "checkout"
+              ]
             },
             "description": ""
           },
@@ -6394,7 +6432,17 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout59}}/confirmar"
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout59}}/confirmar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "checkout",
+                "{{checkout59}}",
+                "confirmar"
+              ]
             },
             "description": ""
           },
@@ -6422,7 +6470,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/pedidos"
+              "raw": "{{baseUrl}}/api/carrito/pedidos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "pedidos"
+              ]
             },
             "description": ""
           },
@@ -6451,7 +6507,16 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/pedidos/{{pedido59}}"
+              "raw": "{{baseUrl}}/api/carrito/pedidos/{{pedido59}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "pedidos",
+                "{{pedido59}}"
+              ]
             },
             "description": "Ejecutar después de TC-59; reutiliza pedido59, creado por ese caso."
           },
@@ -6480,7 +6545,16 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/pedidos/{{pedido59}}"
+              "raw": "{{baseUrl}}/api/carrito/pedidos/{{pedido59}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "pedidos",
+                "{{pedido59}}"
+              ]
             },
             "description": "Usa token4, distinto al usuario que creó pedido59 en TC-59."
           },
@@ -6502,7 +6576,14 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{mockUrl}}/__test/reset"
+              "raw": "{{mockUrl}}/__test/reset",
+              "host": [
+                "{{mockUrl}}"
+              ],
+              "path": [
+                "__test",
+                "reset"
+              ]
             },
             "description": ""
           },
@@ -6529,7 +6610,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito"
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
             },
             "description": ""
           },
@@ -6560,7 +6648,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/items"
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
             },
             "description": "",
             "body": {
@@ -6596,7 +6692,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/checkout"
+              "raw": "{{baseUrl}}/api/carrito/checkout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "checkout"
+              ]
             },
             "description": ""
           },
@@ -6624,7 +6728,17 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout62a}}/confirmar"
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout62a}}/confirmar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "checkout",
+                "{{checkout62a}}",
+                "confirmar"
+              ]
             },
             "description": ""
           },
@@ -6655,7 +6769,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/items"
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
             },
             "description": "",
             "body": {
@@ -6691,7 +6813,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/checkout"
+              "raw": "{{baseUrl}}/api/carrito/checkout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "checkout"
+              ]
             },
             "description": ""
           },
@@ -6719,7 +6849,17 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout62b}}/confirmar"
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout62b}}/confirmar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "checkout",
+                "{{checkout62b}}",
+                "confirmar"
+              ]
             },
             "description": ""
           },
@@ -6750,7 +6890,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/items"
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
             },
             "description": "",
             "body": {
@@ -6786,7 +6934,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/checkout"
+              "raw": "{{baseUrl}}/api/carrito/checkout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "checkout"
+              ]
             },
             "description": ""
           },
@@ -6814,7 +6970,17 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout62c}}/confirmar"
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout62c}}/confirmar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "checkout",
+                "{{checkout62c}}",
+                "confirmar"
+              ]
             },
             "description": ""
           },
@@ -6841,7 +7007,25 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/pedidos?limit=2&offset=0"
+              "raw": "{{baseUrl}}/api/carrito/pedidos?limit=2&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "pedidos"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "2"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
             },
             "description": ""
           },
@@ -6869,7 +7053,25 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/pedidos?limit=2&offset=2"
+              "raw": "{{baseUrl}}/api/carrito/pedidos?limit=2&offset=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "pedidos"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "2"
+                },
+                {
+                  "key": "offset",
+                  "value": "2"
+                }
+              ]
             },
             "description": ""
           },
@@ -6897,7 +7099,21 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/pedidos?limit=0"
+              "raw": "{{baseUrl}}/api/carrito/pedidos?limit=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "pedidos"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "0"
+                }
+              ]
             },
             "description": ""
           },
@@ -6924,7 +7140,21 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/pedidos?limit=51"
+              "raw": "{{baseUrl}}/api/carrito/pedidos?limit=51",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "pedidos"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "51"
+                }
+              ]
             },
             "description": ""
           },
@@ -6951,7 +7181,21 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/pedidos?limit=abc"
+              "raw": "{{baseUrl}}/api/carrito/pedidos?limit=abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "pedidos"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "abc"
+                }
+              ]
             },
             "description": ""
           },
@@ -6978,7 +7222,21 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/pedidos?offset=-1"
+              "raw": "{{baseUrl}}/api/carrito/pedidos?offset=-1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "pedidos"
+              ],
+              "query": [
+                {
+                  "key": "offset",
+                  "value": "-1"
+                }
+              ]
             },
             "description": ""
           },
@@ -7000,7 +7258,15 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/pedidos"
+              "raw": "{{baseUrl}}/api/carrito/pedidos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "pedidos"
+              ]
             },
             "description": ""
           },
@@ -7022,7 +7288,16 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/pedidos/{{pedido59}}"
+              "raw": "{{baseUrl}}/api/carrito/pedidos/{{pedido59}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "pedidos",
+                "{{pedido59}}"
+              ]
             },
             "description": ""
           },
@@ -7044,7 +7319,15 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/recuperar"
+              "raw": "{{baseUrl}}/api/carrito/recuperar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "recuperar"
+              ]
             },
             "description": ""
           },
@@ -7066,7 +7349,14 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{mockUrl}}/__test/reset"
+              "raw": "{{mockUrl}}/__test/reset",
+              "host": [
+                "{{mockUrl}}"
+              ],
+              "path": [
+                "__test",
+                "reset"
+              ]
             },
             "description": ""
           },
@@ -7093,7 +7383,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito"
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
             },
             "description": ""
           },
@@ -7124,7 +7421,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/items"
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
             },
             "description": "",
             "body": {
@@ -7160,7 +7465,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/checkout"
+              "raw": "{{baseUrl}}/api/carrito/checkout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "checkout"
+              ]
             },
             "description": ""
           },
@@ -7188,7 +7501,17 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout65}}/confirmar"
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout65}}/confirmar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "checkout",
+                "{{checkout65}}",
+                "confirmar"
+              ]
             },
             "description": ""
           },
@@ -7216,7 +7539,17 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout65}}/confirmar"
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout65}}/confirmar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "checkout",
+                "{{checkout65}}",
+                "confirmar"
+              ]
             },
             "description": "Después de completar, verifica manualmente en PostgreSQL: SELECT COUNT(*) FROM pedidos WHERE checkout_id = '<checkout65>'; el resultado debe ser 1."
           },
@@ -7239,7 +7572,14 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{mockUrl}}/__test/reset"
+              "raw": "{{mockUrl}}/__test/reset",
+              "host": [
+                "{{mockUrl}}"
+              ],
+              "path": [
+                "__test",
+                "reset"
+              ]
             },
             "description": ""
           },
@@ -7266,7 +7606,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito"
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
             },
             "description": ""
           },
@@ -7297,7 +7644,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/items"
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
             },
             "description": "",
             "body": {
@@ -7333,7 +7688,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/checkout"
+              "raw": "{{baseUrl}}/api/carrito/checkout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "checkout"
+              ]
             },
             "description": ""
           },
@@ -7361,7 +7724,17 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout66}}/confirmar"
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout66}}/confirmar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "checkout",
+                "{{checkout66}}",
+                "confirmar"
+              ]
             },
             "description": "Antes de enviar: detén solo el servicio PostgreSQL del compose QA. Después de confirmar, ejecuta TC-66 Consultar historial con PostgreSQL detenido; se espera fuente REDIS. Al terminar, vuelve a iniciar PostgreSQL."
           },
@@ -7389,7 +7762,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/pedidos"
+              "raw": "{{baseUrl}}/api/carrito/pedidos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "pedidos"
+              ]
             },
             "description": ""
           },
@@ -7412,7 +7793,14 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{mockUrl}}/__test/reset"
+              "raw": "{{mockUrl}}/__test/reset",
+              "host": [
+                "{{mockUrl}}"
+              ],
+              "path": [
+                "__test",
+                "reset"
+              ]
             },
             "description": ""
           },
@@ -7439,7 +7827,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito"
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
             },
             "description": ""
           },
@@ -7470,7 +7865,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/items"
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
             },
             "description": "",
             "body": {
@@ -7506,7 +7909,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/recuperar"
+              "raw": "{{baseUrl}}/api/carrito/recuperar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "recuperar"
+              ]
             },
             "description": ""
           },
@@ -7529,7 +7940,14 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{mockUrl}}/__test/reset"
+              "raw": "{{mockUrl}}/__test/reset",
+              "host": [
+                "{{mockUrl}}"
+              ],
+              "path": [
+                "__test",
+                "reset"
+              ]
             },
             "description": ""
           },
@@ -7556,7 +7974,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito"
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
             },
             "description": ""
           },
@@ -7587,7 +8012,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/items"
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
             },
             "description": "",
             "body": {
@@ -7623,7 +8056,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/recuperar"
+              "raw": "{{baseUrl}}/api/carrito/recuperar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "recuperar"
+              ]
             },
             "description": "Antes de enviar, simula la última actividad en Redis con PowerShell desde la carpeta del compose QA. Copia user68 e inactiveAt68 desde las variables de colección y ejecuta: docker compose exec redis redis-cli SET \"carrito-actividad:<user68>\" \"<inactiveAt68>\" EX 86400. Luego envía esta solicitud y enseguida la siguiente (segunda consulta)."
           },
@@ -7651,7 +8092,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/recuperar"
+              "raw": "{{baseUrl}}/api/carrito/recuperar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "recuperar"
+              ]
             },
             "description": ""
           },
@@ -7674,7 +8123,14 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{mockUrl}}/__test/reset"
+              "raw": "{{mockUrl}}/__test/reset",
+              "host": [
+                "{{mockUrl}}"
+              ],
+              "path": [
+                "__test",
+                "reset"
+              ]
             },
             "description": ""
           },
@@ -7701,7 +8157,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito"
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
             },
             "description": ""
           },
@@ -7732,7 +8195,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/items"
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
             },
             "description": "",
             "body": {
@@ -7768,7 +8239,15 @@
               }
             ],
             "url": {
-              "raw": "{{mockUrl}}/__test/productos/prod_001"
+              "raw": "{{mockUrl}}/__test/productos/prod_001",
+              "host": [
+                "{{mockUrl}}"
+              ],
+              "path": [
+                "__test",
+                "productos",
+                "prod_001"
+              ]
             },
             "description": "",
             "body": {
@@ -7804,7 +8283,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/recuperar"
+              "raw": "{{baseUrl}}/api/carrito/recuperar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "recuperar"
+              ]
             },
             "description": ""
           },
@@ -7827,7 +8314,14 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{mockUrl}}/__test/reset"
+              "raw": "{{mockUrl}}/__test/reset",
+              "host": [
+                "{{mockUrl}}"
+              ],
+              "path": [
+                "__test",
+                "reset"
+              ]
             },
             "description": ""
           },
@@ -7854,7 +8348,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito"
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
             },
             "description": ""
           },
@@ -7885,7 +8386,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/items"
+              "raw": "{{baseUrl}}/api/carrito/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "items"
+              ]
             },
             "description": "",
             "body": {
@@ -7921,7 +8430,15 @@
               }
             ],
             "url": {
-              "raw": "{{mockUrl}}/__test/productos/prod_001"
+              "raw": "{{mockUrl}}/__test/productos/prod_001",
+              "host": [
+                "{{mockUrl}}"
+              ],
+              "path": [
+                "__test",
+                "productos",
+                "prod_001"
+              ]
             },
             "description": "",
             "body": {
@@ -7957,7 +8474,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/recuperar"
+              "raw": "{{baseUrl}}/api/carrito/recuperar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "recuperar"
+              ]
             },
             "description": ""
           },
@@ -7985,7 +8510,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito"
+              "raw": "{{baseUrl}}/api/carrito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito"
+              ]
             },
             "description": ""
           },
@@ -8012,7 +8544,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/carrito/recuperar"
+              "raw": "{{baseUrl}}/api/carrito/recuperar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carrito",
+                "recuperar"
+              ]
             },
             "description": ""
           },
