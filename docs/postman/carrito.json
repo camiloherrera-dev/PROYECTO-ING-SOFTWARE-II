@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "Carrito de Compras - QA Sprint 1 a Sprint 3",
-    "description": "Regresión del carrito y casos Sprint 2/3. TC-53 y TC-57 requieren validación manual documentada en docs/plan-pruebas.md. Ejecutar Sprint 3 solo después de integrar los endpoints en develop.",
+    "name": "Carrito de Compras - QA Sprint 1 a Sprint 4",
+    "description": "Regresión del carrito y casos Sprint 2/3/4. TC-59 a TC-71 agregados para HU-11/HU-12; ejecutar cuando el entorno corresponda al develop actualizado. TC-65 (verificación SQL), TC-66 (detener/restaurar PostgreSQL) y TC-68 (sembrar actividad antigua en Redis) requieren pasos manuales descritos en cada solicitud.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -39,7 +39,28 @@
           "cv.set('token3', makeToken(cv.get('user3'), secret));",
           "if (pm.info.requestName.indexOf('TC-01') === 0 || !cv.get('user5')) cv.set('user5', 'qa_s3_' + Date.now());",
           "cv.set('token5', makeToken(cv.get('user5'), secret));",
-          "cv.set('token4', makeToken(cv.get('user4'), secret));"
+          "cv.set('token4', makeToken(cv.get('user4'), secret));",
+          "// Sprint 4: usuarios aislados por caso; se renuevan al ejecutar la solicitud de preparación.",
+          "const sprint4Actors = [",
+          "  [\"TC-59 Preparar carrito limpio\", \"user59\", \"token59\"],",
+          "  [\"TC-62 Preparar carrito limpio\", \"user62\", \"token62\"],",
+          "  [\"TC-65 Preparar carrito limpio\", \"user65\", \"token65\"],",
+          "  [\"TC-66 Preparar carrito limpio\", \"user66\", \"token66\"],",
+          "  [\"TC-67 Preparar carrito limpio\", \"user67\", \"token67\"],",
+          "  [\"TC-68 Preparar carrito limpio\", \"user68\", \"token68\"],",
+          "  [\"TC-69 Preparar carrito limpio\", \"user69\", \"token69\"],",
+          "  [\"TC-70 Preparar carrito limpio\", \"user70\", \"token70\"],",
+          "  [\"TC-71 Preparar carrito limpio\", \"user71\", \"token71\"]",
+          "];",
+          "for (const [prefix, userKey, tokenKey] of sprint4Actors) {",
+          "  if (pm.info.requestName.indexOf(prefix) === 0 || !cv.get(userKey)) {",
+          "    cv.set(userKey, \"qa_s4_\" + userKey + \"_\" + Date.now());",
+          "  }",
+          "  cv.set(tokenKey, makeToken(cv.get(userKey), secret));",
+          "}",
+          "if (pm.info.requestName.indexOf(\"TC-68 Preparar carrito limpio\") === 0) {",
+          "  cv.set(\"inactiveAt68\", new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString());",
+          "}"
         ]
       }
     }
@@ -98,6 +119,146 @@
     {
       "key": "token5",
       "value": ""
+    },
+    {
+      "key": "user59",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token59",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "checkout59",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pedido59",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user62",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token62",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "checkout62a",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "checkout62b",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "checkout62c",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user65",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token65",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "checkout65",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pedido65",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user66",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token66",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "checkout66",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pedido66",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user67",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token67",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user68",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token68",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "inactiveAt68",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user69",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token69",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user70",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token70",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user71",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token71",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -6054,6 +6215,1815 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"409 CHECKOUT_REEMPLAZADO sin pedido\", () => { pm.response.to.have.status(409); pm.expect(pm.response.json().codigo).to.eql(\"CHECKOUT_REEMPLAZADO\"); pm.expect(pm.response.json()).not.to.have.property(\"pedidoId\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sprint 4 — HU-11/HU-12 (TC-59 a TC-71)",
+      "description": "Ejecutar de arriba hacia abajo. Usa usuarios aislados. TC-59 crea el pedido que reutilizan TC-60, TC-61 y TC-64. TC-62 crea tres pedidos en un usuario nuevo. TC-65, TC-66 y TC-68 incluyen comprobaciones manuales descritas en sus solicitudes.",
+      "item": [
+        {
+          "name": "TC-59 Restablecer Catálogo mock",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{mockUrl}}/__test/reset"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mock de Catálogo restablecido\", () => pm.expect([200, 204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-59 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token59}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito limpio\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-59 Agregar 3 prod_001",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token59}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-59 Agregar 2 prod_002",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token59}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_002\",\n  \"cantidad\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-59 Crear checkout y guardar checkout59",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token59}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Checkout creado\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"checkout59\", pm.response.json().checkoutId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-59 Confirmar pedido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token59}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout59}}/confirmar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pedido confirmado\", () => pm.test ? pm.response.to.have.status(201) : pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"pedido59\", pm.response.json().pedidoId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-59 Consultar historial tras confirmar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token59}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/pedidos"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test(\"200 y fuente POSTGRES\", () => { pm.response.to.have.status(200); pm.expect(b.fuente).to.eql(\"POSTGRES\"); });",
+                  "pm.test(\"Incluye el pedido recién creado, 5 unidades y total esperado\", () => { const p = b.pedidos?.[0]; pm.expect(p?.pedidoId).to.eql(pm.collectionVariables.get(\"pedido59\")); pm.expect(p?.unidades).to.eql(5); pm.expect(p?.subtotal).to.eql(409500); pm.expect(p?.descuentoTotal).to.eql(66488); pm.expect(p?.total).to.eql(343012); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-60 Consultar detalle de 3 camisetas y 2 jeans",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token59}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/pedidos/{{pedido59}}"
+            },
+            "description": "Ejecutar después de TC-59; reutiliza pedido59, creado por ese caso."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test(\"200 con detalle, dos ítems y total 343012\", () => { pm.response.to.have.status(200); pm.expect(b.items).to.have.length(2); pm.expect(b.total).to.eql(343012); });",
+                  "pm.test(\"Cantidades del snapshot\", () => { const a = b.items.find(i => i.productId === \"prod_001\"); const j = b.items.find(i => i.productId === \"prod_002\"); pm.expect(a?.cantidad).to.eql(3); pm.expect(j?.cantidad).to.eql(2); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-61 Consultar pedido de otro usuario",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token4}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/pedidos/{{pedido59}}"
+            },
+            "description": "Usa token4, distinto al usuario que creó pedido59 en TC-59."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"404 PEDIDO_NO_ENCONTRADO\", () => { pm.response.to.have.status(404); pm.expect(pm.response.json().codigo).to.eql(\"PEDIDO_NO_ENCONTRADO\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-62 Restablecer Catálogo mock",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{mockUrl}}/__test/reset"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mock de Catálogo restablecido\", () => pm.expect([200, 204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-62 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token62}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito limpio\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-62 Agregar 1 prod_001 (a)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token62}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-62 a Crear checkout y guardar checkout62a",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token62}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Checkout creado\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"checkout62a\", pm.response.json().checkoutId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-62 Confirmar pedido a",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token62}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout62a}}/confirmar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pedido confirmado\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-62 Agregar 1 prod_001 (b)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token62}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-62 b Crear checkout y guardar checkout62b",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token62}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Checkout creado\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"checkout62b\", pm.response.json().checkoutId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-62 Confirmar pedido b",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token62}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout62b}}/confirmar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pedido confirmado\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-62 Agregar 1 prod_001 (c)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token62}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-62 c Crear checkout y guardar checkout62c",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token62}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Checkout creado\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"checkout62c\", pm.response.json().checkoutId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-62 Confirmar pedido c",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token62}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout62c}}/confirmar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pedido confirmado\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-62 Página 1: limit=2, offset=0",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token62}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/pedidos?limit=2&offset=0"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test(\"Dos pedidos de un total de tres\", () => { pm.response.to.have.status(200); pm.expect(b.pedidos).to.have.length(2); pm.expect(b.total).to.eql(3); pm.expect(b.limit).to.eql(2); pm.expect(b.offset).to.eql(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-62 Página 2: limit=2, offset=2",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token62}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/pedidos?limit=2&offset=2"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test(\"Un pedido restante de un total de tres\", () => { pm.response.to.have.status(200); pm.expect(b.pedidos).to.have.length(1); pm.expect(b.total).to.eql(3); pm.expect(b.offset).to.eql(2); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-63 limit=0",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token59}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/pedidos?limit=0"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 VALIDACION_FALLIDA\", () => { pm.response.to.have.status(400); pm.expect(pm.response.json().codigo).to.eql(\"VALIDACION_FALLIDA\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-63 limit=51",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token59}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/pedidos?limit=51"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 VALIDACION_FALLIDA\", () => { pm.response.to.have.status(400); pm.expect(pm.response.json().codigo).to.eql(\"VALIDACION_FALLIDA\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-63 limit=abc",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token59}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/pedidos?limit=abc"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 VALIDACION_FALLIDA\", () => { pm.response.to.have.status(400); pm.expect(pm.response.json().codigo).to.eql(\"VALIDACION_FALLIDA\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-63 offset=-1",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token59}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/pedidos?offset=-1"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 VALIDACION_FALLIDA\", () => { pm.response.to.have.status(400); pm.expect(pm.response.json().codigo).to.eql(\"VALIDACION_FALLIDA\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-64 Historial sin token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/pedidos"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"401 NO_AUTORIZADO\", () => { pm.response.to.have.status(401); pm.expect(pm.response.json().codigo).to.eql(\"NO_AUTORIZADO\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-64 Detalle sin token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/pedidos/{{pedido59}}"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"401 NO_AUTORIZADO\", () => { pm.response.to.have.status(401); pm.expect(pm.response.json().codigo).to.eql(\"NO_AUTORIZADO\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-64 Recuperación sin token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/recuperar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"401 NO_AUTORIZADO\", () => { pm.response.to.have.status(401); pm.expect(pm.response.json().codigo).to.eql(\"NO_AUTORIZADO\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-65 Restablecer Catálogo mock",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{mockUrl}}/__test/reset"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mock de Catálogo restablecido\", () => pm.expect([200, 204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-65 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token65}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito limpio\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-65 Agregar 1 prod_001",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token65}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-65 Crear checkout y guardar checkout65",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token65}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Checkout creado\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"checkout65\", pm.response.json().checkoutId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-65 Confirmar pedido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token65}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout65}}/confirmar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pedido confirmado\", () => pm.test ? pm.response.to.have.status(201) : pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"pedido65\", pm.response.json().pedidoId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-65 Segunda confirmación idempotente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token65}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout65}}/confirmar"
+            },
+            "description": "Después de completar, verifica manualmente en PostgreSQL: SELECT COUNT(*) FROM pedidos WHERE checkout_id = '<checkout65>'; el resultado debe ser 1."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test(\"200 y mismo pedido; no crea otro\", () => { pm.response.to.have.status(200); pm.expect(b.pedidoId).to.eql(pm.collectionVariables.get(\"pedido65\")); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-66 Restablecer Catálogo mock",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{mockUrl}}/__test/reset"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mock de Catálogo restablecido\", () => pm.expect([200, 204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-66 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token66}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito limpio\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-66 Agregar 1 prod_001",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token66}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-66 Crear checkout y guardar checkout66",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token66}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Checkout creado\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"checkout66\", pm.response.json().checkoutId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-66 MANUAL: detener PostgreSQL antes de confirmar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token66}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/checkout/{{checkout66}}/confirmar"
+            },
+            "description": "Antes de enviar: detén solo el servicio PostgreSQL del compose QA. Después de confirmar, ejecuta TC-66 Consultar historial con PostgreSQL detenido; se espera fuente REDIS. Al terminar, vuelve a iniciar PostgreSQL."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test(\"Confirmación 201 y pedido guardado en Redis\", () => { pm.response.to.have.status(201); pm.collectionVariables.set(\"pedido66\", b.pedidoId); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-66 Consultar historial con PostgreSQL detenido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token66}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/pedidos"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test(\"Historial 200 desde REDIS con PostgreSQL detenido\", () => { pm.response.to.have.status(200); pm.expect(b.fuente).to.eql(\"REDIS\"); pm.expect(b.pedidos?.some(p => p.pedidoId === pm.collectionVariables.get(\"pedido66\"))).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-67 Restablecer Catálogo mock",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{mockUrl}}/__test/reset"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mock de Catálogo restablecido\", () => pm.expect([200, 204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-67 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token67}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito limpio\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-67 Agregar 1 prod_001",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token67}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-67 Recuperar carrito con actividad reciente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token67}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/recuperar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test(\"200 con carrito activo y reciente\", () => { pm.response.to.have.status(200); pm.expect(b.recuperacion.hayCarrito).to.eql(true); pm.expect(b.recuperacion.inactivo).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-68 Restablecer Catálogo mock",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{mockUrl}}/__test/reset"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mock de Catálogo restablecido\", () => pm.expect([200, 204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-68 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token68}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito limpio\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-68 Agregar 1 prod_001",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token68}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-68 Recuperar tras 3 horas (primera consulta)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token68}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/recuperar"
+            },
+            "description": "Antes de enviar, simula la última actividad en Redis con PowerShell desde la carpeta del compose QA. Copia user68 e inactiveAt68 desde las variables de colección y ejecuta: docker compose exec redis redis-cli SET \"carrito-actividad:<user68>\" \"<inactiveAt68>\" EX 86400. Luego envía esta solicitud y enseguida la siguiente (segunda consulta)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test(\"Inactivo por al menos 180 minutos\", () => { pm.response.to.have.status(200); pm.expect(b.recuperacion.inactivo).to.eql(true); pm.expect(b.recuperacion.inactividadMinutos).to.be.at.least(180); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-68 Segunda consulta limpia aviso de inactividad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token68}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/recuperar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test(\"El aviso de inactividad se muestra una sola vez\", () => { pm.response.to.have.status(200); pm.expect(b.recuperacion.inactivo).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-69 Restablecer Catálogo mock",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{mockUrl}}/__test/reset"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mock de Catálogo restablecido\", () => pm.expect([200, 204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-69 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token69}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito limpio\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-69 Agregar 1 prod_001",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token69}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-69 Cambiar precio en Catálogo mock",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{mockUrl}}/__test/productos/prod_001"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"precio\": 55000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Precio actualizado en mock\", () => { pm.response.to.have.status(200); pm.expect(pm.response.json().precio).to.eql(55000); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-69 Recuperar y detectar cambio de precio",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token69}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/recuperar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json(); const cambio = b.recuperacion.cambios.preciosCambiados.find(x => x.productId === \"prod_001\");",
+                  "pm.test(\"Precio anterior y nuevo reportados\", () => { pm.response.to.have.status(200); pm.expect(cambio).to.exist; pm.expect(cambio.precioAnterior).to.eql(49900); pm.expect(cambio.precioUnitario).to.eql(55000); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-70 Restablecer Catálogo mock",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{mockUrl}}/__test/reset"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mock de Catálogo restablecido\", () => pm.expect([200, 204]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-70 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token70}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito limpio\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-70 Agregar 1 prod_001",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token70}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/items"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_001\",\n  \"cantidad\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto agregado\", () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-70 Desactivar producto en Catálogo mock",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{mockUrl}}/__test/productos/prod_001"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": false,\n  \"stock\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Producto desactivado en mock\", () => { pm.response.to.have.status(200); pm.expect(pm.response.json().activo).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-70 Recuperar y detectar producto no disponible",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token70}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/recuperar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json(); const noDisponible = b.recuperacion.cambios.noDisponibles.find(x => x.productId === \"prod_001\");",
+                  "pm.test(\"Producto no disponible identificado y no suma al total\", () => { pm.response.to.have.status(200); pm.expect(noDisponible).to.exist; pm.expect(b.total).to.eql(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-71 Preparar carrito limpio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token71}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Carrito limpio\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-71 Recuperar usuario sin carrito",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token71}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carrito/recuperar"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test(\"Sin carrito: hayCarrito false y expiración null\", () => { pm.response.to.have.status(200); pm.expect(b.recuperacion.hayCarrito).to.eql(false); pm.expect(b.recuperacion.expiraEnSegundos).to.eql(null); });"
                 ]
               }
             }
