@@ -33,27 +33,27 @@ Columna **Auto** = se ejecuta en Postman con aserciones. **Manual** = se ejecuta
 
 | ID | Criterio de aceptación / regla | Prueba | Resultado esperado | Auto | Resultado (Pasa/Falla) | Evidencia / Bug |
 |---|---|---|---|---|---|---|
-| TC-01 | HU-01: agregar un producto disponible | POST `prod_001`, cantidad 2 | 201; el ítem aparece en el carrito | Sí | | |
-| TC-02 | HU-01: se registra la cantidad | GET tras TC-01 | cantidad = 2 | Sí | | |
-| TC-03 | HU-01: no duplicar entradas | POST `prod_001`, cantidad 1 otra vez | 200; una sola entrada con cantidad 3 | Sí | | |
-| TC-04 | RF-14: precio oficial de Catálogo | POST con `precioUnitario: 1` en el body | Se usa el precio del mock | Sí | | |
-| TC-05 | RF-13: producto inactivo | POST `prod_003` | 404 `PRODUCTO_NO_ENCONTRADO` | Sí | | |
-| TC-06 | RF-13: producto inexistente | POST `prod_999` | 404 `PRODUCTO_NO_ENCONTRADO` | Sí | | |
-| TC-07 | Validación de cantidad | POST con 0, -1, 1.5 y `"2"` | 400 `VALIDACION_FALLIDA` (4 requests: a–d) | Sí | Pasa (a–d) | Ejecución individual en Postman reportada por Sofía el 2026-11-11; las cuatro respuestas incluyeron `VALIDACION_FALLIDA`, “La cantidad debe ser un entero mayor a 0”. |
-| TC-08 | HU-02: consultar productos | GET con 2 productos | Lista con nombre, cantidad y precio | Sí | | |
-| TC-09 | HU-02: subtotal y total | GET | subtotal = Σ(precio × cantidad); total = subtotal | Sí | | |
-| TC-10 | HU-02: carrito vacío | GET de usuario nuevo | 200; `items: []` y totales en 0 | Sí | Pasa | Postman reportado por Sofía el 2026-11-11: `items: []`; subtotal, descuentos y total en 0; `descuentosDisponibles: true`. |
-| TC-11 | RF-16: cambio de precio | PATCH al mock y GET | Precio nuevo + `precioAnterior` | Sí | | |
-| TC-12 | RF-16: producto desactivado | PATCH `activo:false` y GET | `disponible:false`; no suma al total | Sí | | |
-| TC-13 | HU-03: aumentar cantidad | PUT `prod_001` con 5 (estaba en 3) | 200; cantidad = 5 | Sí | | |
-| TC-14 | HU-03: disminuir cantidad | PUT `prod_001` con 1 | 200; cantidad = 1 | Sí | | |
-| TC-15 | HU-03: total actualizado | GET tras TC-13 | `totalItem` = 5 × precio | Sí | | |
-| TC-16 | HU-03: cantidad inválida | PUT con 0, -2 y 1.5 | 400; el carrito no cambia (a, b, c, d) | Sí | Parcial (a–c) | Sofía reporta que TC-16a, TC-16b y TC-16c respondieron `VALIDACION_FALLIDA`, “La cantidad debe ser un entero mayor a 0”. TC-16d (GET para verificar que el carrito no cambió) aún requiere confirmar un carrito previamente cargado; no se marca aprobado con el carrito vacío. |
-| TC-17 | HU-03: producto fuera del carrito | PUT `prod_002` sin haberlo agregado | 404 `PRODUCTO_NO_ENCONTRADO` | Sí | Pasa | Postman reportado por Sofía el 2026-11-11: `PRODUCTO_NO_ENCONTRADO`, “El producto no está en el carrito”. |
-| TC-18 | RT-01: sin token | GET, POST y PUT sin Authorization | 401 `NO_AUTORIZADO` (a, b, c) | Sí | Pasa (a–c) | Ejecución individual en Postman reportada por Sofía el 2026-11-11; las tres respuestas incluyeron `NO_AUTORIZADO`, “Token no proporcionado”. |
-| TC-19 | RT-01: token inválido | Token con firma incorrecta | 401 | Sí | Pasa | Postman reportado por Sofía el 2026-11-11: `NO_AUTORIZADO`, “Token inválido o expirado”. |
-| TC-20 | RNF-02: userId del token | POST con `userId` en body y en query | Se usa el del token | Sí | | |
-| TC-21 | Aislamiento entre usuarios | Dos tokens distintos | Cada uno ve solo su carrito (a, b) | Sí | | |
+| TC-01 | HU-01: agregar un producto disponible | POST `prod_001`, cantidad 2 | 201; el ítem aparece en el carrito | Sí | Pasa | Postman, 2026-11-12: HTTP 201; prod_001 agregado con cantidad 2, subtotal y total 99.800. |
+| TC-02 | HU-01: se registra la cantidad | GET tras TC-01 | cantidad = 2 | Sí | Pasa | Postman, 2026-11-12: HTTP 200; GET devuelve prod_001 con cantidad 2 y total 99.800. |
+| TC-03 | HU-01: no duplicar entradas | POST `prod_001`, cantidad 1 otra vez | 200; una sola entrada con cantidad 3 | Sí | Pasa | Postman, 2026-11-12: HTTP 200; una entrada de prod_001 con cantidad 3 y descuento de 22.455. |
+| TC-04 | RF-14: precio oficial de Catálogo | POST con `precioUnitario: 1` en el body | Se usa el precio del mock | Sí | Pasa | Postman, 2026-11-12: HTTP 201; prod_002 quedó con el precio oficial del mock (129.900), no con el precio manipulado. |
+| TC-05 | RF-13: producto inactivo | POST `prod_003` | 404 `PRODUCTO_NO_ENCONTRADO` | Sí | Pasa | Postman, 2026-11-12: HTTP 404 PRODUCTO_NO_ENCONTRADO al agregar producto inactivo; cuerpo esperado. |
+| TC-06 | RF-13: producto inexistente | POST `prod_999` | 404 `PRODUCTO_NO_ENCONTRADO` | Sí | Pasa | Postman, 2026-11-12: HTTP 404 PRODUCTO_NO_ENCONTRADO al agregar producto inexistente; cuerpo esperado. |
+| TC-07 | Validación de cantidad | POST con 0, -1, 1.5 y `"2"` | 400 `VALIDACION_FALLIDA` (4 requests: a–d) | Sí | Pasa (a–d) | Postman, 2026-11-12: las cuatro cantidades inválidas respondieron HTTP 400 VALIDACION_FALLIDA, mensaje esperado. |
+| TC-08 | HU-02: consultar productos | GET con 2 productos | Lista con nombre, cantidad y precio | Sí | Pasa | Postman, 2026-11-12: HTTP 200; GET devuelve los productos con nombre, cantidad y precio. |
+| TC-09 | HU-02: subtotal y total | GET | Subtotal = suma(precio × cantidad); total = subtotal - descuentoTotal | Sí | Pasa | Postman, 2026-11-12: HTTP 200; subtotal 279.600, descuentos 35.445 y total 244.155; las identidades del contrato vigente se cumplen. |
+| TC-10 | HU-02: carrito vacío | GET de usuario nuevo | 200; `items: []` y totales en 0 | Sí | Pasa | Postman, 2026-11-12: HTTP 200; carrito vacío, todos los totales en 0 y descuentosDisponibles true. |
+| TC-11 | RF-16: cambio de precio | PATCH al mock y GET | Precio nuevo + `precioAnterior` | Sí | Pasa (a–b) | Postman, 2026-11-12: PATCH devolvió el precio 59.900; GET informó precioAnterior 49.900 y el nuevo precio. |
+| TC-12 | RF-16: producto desactivado | PATCH `activo:false` y GET | `disponible:false`; no suma al total | Sí | Pasa (a–b) | Postman, 2026-11-12: PATCH dejó activo=false; GET marcó prod_001 no disponible y lo excluyó del total. |
+| TC-13 | HU-03: aumentar cantidad | PUT `prod_001` con 5 (estaba en 3) | 200; cantidad = 5 | Sí | Pasa | Postman, 2026-11-12: HTTP 200; prod_001 quedó con cantidad 5 y totalItem recalculado. |
+| TC-14 | HU-03: disminuir cantidad | PUT `prod_001` con 1 | 200; cantidad = 1 | Sí | Pasa | Postman, 2026-11-12: HTTP 200; prod_001 quedó con cantidad 1 y totalItem recalculado. |
+| TC-15 | HU-03: total actualizado | GET tras TC-13 | `totalItem` = 5 × precio | Sí | Pendiente (repetir en orden) | El cuerpo compartido muestra cantidad 1, igual que después de TC-14. La solicitud se debe ejecutar inmediatamente después de TC-13 y antes de TC-14 para comprobar cantidad 5. |
+| TC-16 | HU-03: cantidad inválida | PUT con 0, -2 y 1.5 | 400; el carrito no cambia (a, b, c, d) | Sí | Pasa (a–d) | Postman, 2026-11-12: TC-16a–c devolvieron HTTP 400 VALIDACION_FALLIDA; TC-16d devolvió HTTP 200 y confirmó que la cantidad permaneció en 1. |
+| TC-17 | HU-03: producto fuera del carrito | PUT `prod_002` sin haberlo agregado | 404 `PRODUCTO_NO_ENCONTRADO` | Sí | Pasa | Postman, 2026-11-12: HTTP 404 PRODUCTO_NO_ENCONTRADO, mensaje El producto no está en el carrito; resultado esperado. |
+| TC-18 | RT-01: sin token | GET, POST y PUT sin Authorization | 401 `NO_AUTORIZADO` (a, b, c) | Sí | Pasa (a–c) | Postman, 2026-11-12: las tres solicitudes sin token devolvieron HTTP 401 NO_AUTORIZADO, mensaje Token no proporcionado. |
+| TC-19 | RT-01: token inválido | Token con firma incorrecta | 401 | Sí | Pasa | Postman, 2026-11-12: HTTP 401 NO_AUTORIZADO, mensaje Token inválido o expirado; resultado esperado. |
+| TC-20 | RNF-02: userId del token | POST con `userId` en body y en query | Se usa el del token | Sí | Pasa | Postman, 2026-11-12: HTTP 201; la respuesta usa userId del token2 (qa_u2_...), aunque body y query envían userId=hacker. |
+| TC-21 | Aislamiento entre usuarios | Dos tokens distintos | Cada uno ve solo su carrito (a, b) | Sí | Pasa (a–b) | Postman, 2026-11-12: HTTP 200 en ambas consultas; token2 ve solo su carrito y token1 conserva el suyo. |
 | TC-22 | RNF-03: persistencia | `redis-cli HGETALL carrito:{userId}` | El hash existe con los ítems | **Manual** | Pasa (claves inspeccionadas) | resultados-qa-sprint2-2026-10-22.md |
 | TC-23 | RNF-03: TTL | `redis-cli TTL carrito:{userId}` | TTL ≈ 604800 y se renueva al escribir | **Manual** | Pasa | resultados-qa-sprint2-2026-10-22.md |
 

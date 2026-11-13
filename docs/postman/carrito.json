@@ -836,7 +836,7 @@
                   "const c = pm.response.json();",
                   "const esperado = c.items.filter(i => i.disponible).reduce((s, i) => s + i.precioUnitario * i.cantidad, 0);",
                   "pm.test(\"subtotal = suma(precio x cantidad)\", () => pm.expect(c.subtotal).to.eql(esperado));",
-                  "pm.test(\"descuento = 0 en Sprint 1 y total = subtotal\", () => { pm.expect(c.descuentoTotal).to.eql(0); pm.expect(c.total).to.eql(c.subtotal); });"
+                  "pm.test(\"descuento y total coherentes\", () => { pm.expect(c.descuentoTotal).to.eql(c.descuentoItems + c.descuentoCarrito); pm.expect(c.total).to.eql(c.subtotal - c.descuentoTotal); });"
                 ]
               }
             }
@@ -1002,7 +1002,7 @@
                 "carrito"
               ]
             },
-            "description": ""
+            "description": "Ejecútala inmediatamente después de TC-13 y antes de TC-14; verifica totalItem = 5 x precio."
           }
         },
         {
