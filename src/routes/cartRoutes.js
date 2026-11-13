@@ -15,6 +15,7 @@ router.delete('/', ctrl.clearCart); // HU-05 (Santiago)
 router.post('/items', ctrl.addItem); // HU-01 (Jeisson)
 router.put('/items/:productId', ctrl.updateItem); // HU-03
 router.delete('/items/:productId', ctrl.removeItem); // HU-04 (Santiago)
+router.get('/recuperar', ctrl.recoverCart); // HU-12 (Camilo)
 
 router.get('/disponibilidad', checkoutCtrl.checkAvailability); // HU-09 (Jose David)
 router.post('/checkout', checkoutCtrl.createCheckout); // HU-08 (Santiago)
