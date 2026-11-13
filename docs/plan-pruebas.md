@@ -161,7 +161,7 @@ Plan añadido para cubrir disponibilidad, checkout, confirmación del pedido y p
 
 | ID | HU | Prueba | Resultado esperado | Tipo | Resultado (Pasa/Falla/Parcial/Bloqueado) | Evidencia / Bug |
 |---|---|---|---|---|---|---|
-| TC-43 | HU-09 | Carrito con productos en stock | 200; `disponible: true`; todos los ítems en `OK` | Automática | Falla | `docs/resultados-qa-integracion-2026-11-02.md`: devuelve `disponible: true`, pero marca los dos productos activos con estado `INACTIVO`. |
+| TC-43 | HU-09 | Carrito con productos en stock | 200; `disponible: true`; todos los ítems en `OK` | Automática | Pasa (repetición) | Postman, 2026-11-12: tras agregar 3 prod_001 y 2 prod_002, disponibilidad devolvió HTTP 200, disponible=true y ambos productos con estado OK; cantidades y stock esperados. Total del carrito 343.012. |
 | TC-44 | HU-09 | Bajar stock del jean a 1 con 2 en el carrito | `SIN_STOCK`; `disponible: false` | Automática | Pasa | `docs/resultados-qa-integracion-2026-11-02.md`: ejecución Postman reportada por Sofía el 2026-11-03; incluye restauración del stock. |
 | TC-45 | HU-09 | Desactivar un producto en el mock | Estado `INACTIVO` | Automática | Pasa | `docs/resultados-qa-integracion-2026-11-02.md`: ejecución Postman reportada por Sofía el 2026-11-03; producto reactivado al terminar. |
 | TC-46 | HU-09 | Cambiar precio del producto y consultar dos veces | Primera consulta `PRECIO_CAMBIO` con `precioAnterior`; segunda consulta `OK` | Automática | Falla | `docs/resultados-qa-integracion-2026-11-02.md`: no detecta el cambio de precio ni devuelve `PRECIO_CAMBIO`/`precioAnterior`. |
