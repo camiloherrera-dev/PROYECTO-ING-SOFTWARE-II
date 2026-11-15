@@ -37,7 +37,7 @@ isEmpty: (s) => s.cart.items.length === 0,
         // { ...EMPTY, ...} protege la vista si el backend aún no envía los campos nuevos
         this.cart = { ...EMPTY, ...(await call()) };
       } catch (e) {
-        this.error = e.mensagem || 'Ocurrió un error inesperado';
+        this.error = e.mensaje || 'Ocurrió un error inesperado';
       } finally {
         this.loading = false;
       }
