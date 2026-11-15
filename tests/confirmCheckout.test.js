@@ -12,6 +12,7 @@ const snapshot = {
   userId: 'usr_1',
   estado: 'PENDIENTE',
   expiraEn: '2026-11-05T15:15:00.000Z',
+  intentos: 0,
   items: [{ productId: 'p1', nombre: 'Teclado', precioUnitario: 100000, cantidad: 2 }],
   subtotal: 200000,
   descuentoItems: 0,
@@ -27,6 +28,7 @@ function crear(over = {}) {
     getActiveCheckoutId: jest.fn().mockResolvedValue('chk_1'),
     startConfirmation: jest.fn().mockResolvedValue({ estado: 'ADQUIRIDO' }),
     resetConfirmation: jest.fn().mockResolvedValue(),
+    resetConfirmationYSumarIntento: jest.fn().mockResolvedValue(),
     savePedidoYConfirmar: jest.fn().mockResolvedValue(),
     getPedido: jest.fn(),
     ...over.checkouts,
@@ -125,7 +127,7 @@ test('STOCK_INSUFICIENTE: el checkout vuelve a PENDIENTE y no se guarda pedido',
   expect(repository.clearCart).not.toHaveBeenCalled();
 });
 
-test('si guardar el pedido falla, se devuelve el stock y el checkout vuelve a PENDIENTE', async () => {
+test('si guardar el pedido falla, se devuelve el stock y el checkout suma un intento', async () => {
   const { service, checkouts, catalog, repository } = crear({ checkouts: {
     savePedidoYConfirmar: jest.fn().mockRejectedValue(new Error('Redis caído')),
   } });
@@ -133,7 +135,7 @@ test('si guardar el pedido falla, se devuelve el stock y el checkout vuelve a PE
   const e = await errorDe(service.confirmCheckout('usr_1', 'chk_1'));
   expect([e.status, e.codigo]).toEqual([500, 'ERROR_INTERNO']);
   expect(catalog.releaseReservation).toHaveBeenCalledWith('chk_1');
-  expect(checkouts.resetConfirmation).toHaveBeenCalledWith('chk_1');
+  expect(checkouts.resetConfirmationYSumarIntento).toHaveBeenCalledWith('chk_1');
   expect(repository.clearCart).not.toHaveBeenCalled();
 });
 
