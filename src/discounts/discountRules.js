@@ -1,11 +1,15 @@
 // Reglas de descuento vigentes (Sprint 2: en código; Sprint 4 o posterior: tabla en PostgreSQL).
 // Cambiar de fuente SOLO toca getActiveRules: el motor no sabe de dónde vienen las reglas.
+
+const DISCOUNT_JEAN_ID = process.env.DISCOUNT_JEAN_ID || 'prod_002';
+const DISCOUNT_CAMISETA_ID = process.env.DISCOUNT_CAMISETA_ID || 'prod_001';
+
 const RULES = [
   {
     id: 'DESC-JEAN-10',
     tipo: 'PORCENTAJE_PRODUCTO',
     descripcion: '10% en Jean clásico',
-    productIds: ['prod_002'],
+    productIds: [DISCOUNT_JEAN_ID],
     porcentaje: 10,
     activa: true,
   },
@@ -13,7 +17,7 @@ const RULES = [
     id: 'DESC-CAMISETA-3X',
     tipo: 'CANTIDAD_MINIMA',
     descripcion: '15% llevando 3 o más camisetas',
-    productIds: ['prod_001'],
+    productIds: [DISCOUNT_CAMISETA_ID],
     cantidadMinima: 3,
     porcentaje: 15,
     activa: true,
