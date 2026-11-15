@@ -24,6 +24,10 @@ const config = {
   rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
   shutdownTimeoutMs: Number(process.env.SHUTDOWN_TIMEOUT_MS) || 10000,
   jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me',
+  // ---- Login con Keycloak (contrato del Host App v1.3; contrato de Catálogo v2.5, sección 10.6) ----
+  // Vacío = solo se aceptan los tokens HS256 firmados con JWT_SECRET, como antes.
+  keycloakLlaves: process.env.KEYCLOAK_LLAVES || '', // http://keycloak:8080/realms/tienda/protocol/openid-connect/certs
+  keycloakEmisor: process.env.KEYCLOAK_EMISOR || 'http://localhost:8180/realms/tienda',
 };
 
 // En producción no se acepta el secreto de pruebas
