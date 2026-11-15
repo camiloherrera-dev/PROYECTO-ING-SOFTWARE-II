@@ -6,7 +6,9 @@ const apiTarget = process.env.CARRITO_API_PROXY || 'http://localhost:8000';
 export default defineConfig({
   plugins: [vue()],
   server: {
-    port: 5173,
+    // Puerto fijo del contrato del Host App v1.2: el 5173 es de Catálogo.
+    port: 5175,
+    strictPort: true,
     // Permite usar Kong en el puerto estándar o en un puerto QA aislado.
     proxy: { '/api': { target: apiTarget, changeOrigin: true } },
   },
