@@ -31,8 +31,12 @@ services:
     container_name: carrito_catalog_mock
     ports: ["4000:4000"]
 
+  # Imagen de producción. docker-compose.override.yml la cambia a desarrollo (nodemon y código montado);
+  # para probar producción: docker compose -f docker-compose.yml up --build
   carrito:
-    build: .
+    build:
+      context: .
+      target: prod
     container_name: carrito_api
     ports: ["3000:3000"]
     env_file: [.env]
@@ -40,13 +44,11 @@ services:
       REDIS_URL: redis://redis:6379
       CATALOG_BASE_URL: http://catalog-mock:4000/api/catalogo
       DATABASE_URL: postgres://carrito:carrito_dev@postgres:5432/carrito
-    volumes:
-      - .:/app
-      - /app/node_modules
     depends_on:
       redis: { condition: service_healthy }
       postgres: { condition: service_healthy }
       catalog-mock: { condition: service_started }
+    restart: unless-stopped
 
   kong:
     image: kong:3.7

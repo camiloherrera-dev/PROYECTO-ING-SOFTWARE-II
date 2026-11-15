@@ -2,14 +2,18 @@
 // Prueba E2E por Kong (Juan David). Uso:
 //   npm run e2e                 → flujo del Sprint 2 (carrito + descuentos + 401)
 //   npm run e2e -- --pedido     → además disponibilidad → checkout → confirmar (Sprint 3)
-// Variables: BASE_URL (Kong, por defecto http://localhost:8000) y CATALOG_URL (mock, http://localhost:4000).
+//   npm run e2e -- --historial  → además historial de pedidos, recuperar carrito y /ready (Sprint 4)
+// Variables: BASE_URL (Kong, por defecto http://localhost:8000), CATALOG_URL (mock, http://localhost:4000)
+// y API_URL (servicio directo para /ready, http://localhost:3000). Antes de empezar reinicia el mock de Catálogo.
 // Termina con código 1 si algo falla, para poder sumarlo al CI.
 const jwt = require('jsonwebtoken');
 const { jwtSecret } = require('../src/config/env');
 
 const BASE = (process.env.BASE_URL || 'http://localhost:8000').replace(/\/+$/, '');
 const CATALOG = (process.env.CATALOG_URL || 'http://localhost:4000').replace(/\/+$/, '');
+const API_URL = (process.env.API_URL || 'http://localhost:3000').replace(/\/+$/, '');
 const conPedido = process.argv.includes('--pedido');
+const conHistorial = process.argv.includes('--historial');
 const userId = `usr_e2e_${Date.now()}`;
 const token = jwt.sign({ sub: userId }, jwtSecret, { expiresIn: '1h', algorithm: 'HS256' });
 
@@ -26,6 +30,12 @@ async function api(method, path, body, { auth = true } = {}) {
     body: body ? JSON.stringify(body) : undefined,
   });
   return { status: res.status, body: await res.json().catch(() => null) };
+}
+
+// Deja el mock de Catálogo como al arrancar (productos, stock y descuentos de stock)
+async function reiniciarCatalogo() {
+  const res = await fetch(`${CATALOG}/__test/reset`, { method: 'POST' });
+  check('Mock de Catálogo reiniciado', res.status === 204, res.status);
 }
 
 const stockDe = async (id) => (await (await fetch(`${CATALOG}/api/catalogo/productos/${id}`)).json()).stock;
@@ -93,11 +103,42 @@ async function sprint3() {
   check('Confirmar checkout inexistente → 404', r.status === 404, r.status);
 }
 
+async function sprint4() {
+  // Después de sprint3(): el pedido recién confirmado debe estar en el historial
+  let r = await api('GET', '/pedidos');
+  check('Historial → 200 con el pedido confirmado',
+    r.status === 200 && r.body.total >= 1 && Boolean(r.body.pedidos?.[0]?.pedidoId), JSON.stringify(r.body));
+  const pedidoId = r.body?.pedidos?.[0]?.pedidoId;
+
+  r = await api('GET', `/pedidos/${pedidoId}`);
+  check('Detalle del pedido → 200 con 2 ítems y total 343.012',
+    r.status === 200 && r.body.total === 343012 && r.body.items?.length === 2, r.status);
+  r = await api('GET', '/pedidos/ped_no_existe');
+  check('Pedido inexistente → 404', r.status === 404 && r.body?.codigo === 'PEDIDO_NO_ENCONTRADO', r.status);
+  r = await api('GET', '/pedidos?limit=0');
+  check('limit=0 → 400', r.status === 400 && r.body?.codigo === 'VALIDACION_FALLIDA', r.status);
+  r = await api('GET', '/pedidos', null, { auth: false });
+  check('Historial sin token → 401', r.status === 401, r.status);
+
+  await api('POST', '/items', { productId: 'prod_001', cantidad: 1 });
+  r = await api('GET', '/recuperar');
+  check('Recuperar → 200 con recuperacion.hayCarrito', r.status === 200 && r.body.recuperacion?.hayCarrito === true,
+    JSON.stringify(r.body?.recuperacion));
+  r = await api('GET', '/recuperar', null, { auth: false });
+  check('Recuperar sin token → 401', r.status === 401, r.status);
+
+  const ready = await fetch(`${API_URL}/ready`).then((x) => x.json()).catch(() => null);
+  check('/ready → Redis arriba', ready?.redis === 'up', JSON.stringify(ready));
+  await api('DELETE', '');
+}
+
 (async () => {
   console.log(`E2E contra ${BASE} (usuario ${userId})\n`);
   try {
+    await reiniciarCatalogo();
     await sprint2();
-    if (conPedido) await sprint3();
+    if (conPedido || conHistorial) await sprint3();
+    if (conHistorial) await sprint4();
   } catch (e) {
     check('El servicio responde', false, e.message);
   }
