@@ -55,9 +55,31 @@ async function removeItem(userId, productId) {
   return borrados === 1;
 }
 
-// HU-05: elimina la clave completa (idempotente: no falla si no existía)
-async function clearCart(userId) {
-  await redis.del(key(userId));
+const kActividad = (userId) => `carrito-actividad:${userId}`;
+
+// HU-12: fecha ISO de la última acción del cliente (agregar, modificar o eliminar).
+// Mismo TTL que el carrito, para que ambos venzan juntos.
+async function touchActividad(userId) {
+  await redis.set(kActividad(userId), new Date().toISOString(), 'EX', cartTtlSeconds);
 }
 
-module.exports = { getItem, saveItem, addItem, getAllItems, removeItem, clearCart };
+// Fecha ISO de la última actividad, o null si no hay registro
+async function getActividad(userId) {
+  return redis.get(kActividad(userId));
+}
+
+// Segundos que le quedan al carrito antes de vencer; null si no existe (-2) o no tiene TTL (-1)
+async function getTtl(userId) {
+  const segundos = await redis.ttl(key(userId));
+  return segundos > 0 ? segundos : null;
+}
+
+// HU-05: elimina el carrito completo y su registro de actividad (idempotente)
+async function clearCart(userId) {
+  await redis.del(key(userId), kActividad(userId));
+}
+
+module.exports = {
+  getItem, saveItem, addItem, getAllItems, removeItem, clearCart,
+  touchActividad, getActividad, getTtl,
+};

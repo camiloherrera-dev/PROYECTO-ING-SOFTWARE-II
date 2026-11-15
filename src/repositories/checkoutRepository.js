@@ -1,7 +1,7 @@
 const { redis } = require('../redis/redisClient');
 const { checkoutTtlSeconds, checkoutLockMs, pedidoTtlSeconds } = require('../config/env');
 
-// Hash checkout:{id} → data (JSON del snapshot, no cambia), estado, userId, pedidoId, confirmandoDesde
+// Hash checkout:{id} → data (JSON del snapshot, no cambia), estado, userId, pedidoId, confirmandoDesde, intentos
 const kCheckout = (id) => `checkout:${id}`;
 const kActivo = (userId) => `checkout-usuario:${userId}`; // checkoutId del checkout vigente
 const kPedido = (id) => `pedido:${id}`;
@@ -42,7 +42,7 @@ async function saveCheckout(checkout) {
   const k = kCheckout(checkout.checkoutId);
   await execOrThrow(redis.multi()
     .del(k)
-    .hset(k, 'data', JSON.stringify(checkout), 'estado', 'PENDIENTE', 'userId', checkout.userId)
+    .hset(k, 'data', JSON.stringify(checkout), 'estado', 'PENDIENTE', 'userId', checkout.userId, 'intentos', '0')
     .expire(k, checkoutTtlSeconds)
     // El puntero define cuál es el checkout vigente: uno nuevo reemplaza al anterior
     .set(kActivo(checkout.userId), checkout.checkoutId, 'EX', checkoutTtlSeconds));
@@ -51,7 +51,12 @@ async function saveCheckout(checkout) {
 async function getCheckout(checkoutId) {
   const h = await redis.hgetall(kCheckout(checkoutId));
   if (!h || !h.data) return null;
-  return { ...JSON.parse(h.data), estado: h.estado, pedidoId: h.pedidoId || undefined };
+  return { 
+    ...JSON.parse(h.data), 
+    estado: h.estado, 
+    pedidoId: h.pedidoId || undefined,
+    intentos: parseInt(h.intentos || '0', 10)
+  };
 }
 
 async function getActiveCheckoutId(userId) {
@@ -61,6 +66,13 @@ async function getActiveCheckoutId(userId) {
 async function startConfirmation(checkoutId) {
   const [estado, pedidoId] = await redis.checkoutConfirm(kCheckout(checkoutId), Date.now(), checkoutLockMs);
   return { estado, pedidoId: pedidoId || undefined };
+}
+
+// Incrementa el contador de intentos y devuelve el checkout a PENDIENTE
+async function resetConfirmationYSumarIntento(checkoutId) {
+  await execOrThrow(redis.multi()
+    .hincrby(kCheckout(checkoutId), 'intentos', 1)
+    .hset(kCheckout(checkoutId), 'estado', 'PENDIENTE'));
 }
 
 async function resetConfirmation(checkoutId) {
@@ -82,7 +94,18 @@ async function getPedido(pedidoId) {
   return raw ? JSON.parse(raw) : null;
 }
 
+// Respaldo del historial: pedidos recientes del usuario en Redis (30 días), el más reciente primero
+async function listPedidosRecientes(userId, limit, offset) {
+  const total = await redis.llen(kPedidos(userId));
+  const ids = await redis.lrange(kPedidos(userId), offset, offset + limit - 1);
+  if (ids.length === 0) return { total, pedidos: [] };
+  const crudos = await redis.mget(ids.map(kPedido));
+  // Un pedido cuyo TTL ya venció llega como null: se omite
+  return { total, pedidos: crudos.filter(Boolean).map((raw) => JSON.parse(raw)) };
+}
+
 module.exports = {
   saveCheckout, getCheckout, getActiveCheckoutId, startConfirmation,
-  resetConfirmation, savePedidoYConfirmar, getPedido, execOrThrow,
+  resetConfirmation, resetConfirmationYSumarIntento, savePedidoYConfirmar, getPedido, execOrThrow,
+  listPedidosRecientes,
 };

@@ -3,6 +3,7 @@ const cartRepository = require('../repositories/cartRepository');
 const checkoutRepository = require('../repositories/checkoutRepository');
 const catalogClient = require('../clients/catalogClient');
 const availabilityService = require('./availabilityService');
+const historyService = require('./historyService');
 const AppError = require('../errors/AppError');
 const { buildCartResponse } = require('./cartTotals');
 const { checkoutVigenciaSeconds = 900 } = require('../config/env');
@@ -12,6 +13,7 @@ function createCheckoutService({
   checkouts = checkoutRepository,
   catalog = catalogClient,
   availability = availabilityService,
+  history = historyService,
   buildResponse = buildCartResponse,
   now = () => Date.now(),
 } = {}) {
@@ -64,10 +66,15 @@ function createCheckoutService({
       throw new AppError(404, 'CHECKOUT_NO_ENCONTRADO', 'El checkout no existe');
     }
 
+    // INT-06: Referencia por intento para Catálogo.
+    // Si intentos es 0, usa checkoutId. Si es > 0, usa checkoutId-r{intentos}
+    const referenciaIntento = checkout.intentos === 0 ? checkoutId : `${checkoutId}-r${checkout.intentos}`;
+
     // 1) Descontar stock en Catálogo (todo o nada). Si falla, el checkout vuelve a PENDIENTE.
+    // Los errores de red se quedan en el mismo intento.
     let reserva;
     try {
-      reserva = await catalog.reserveStock(checkoutId, checkout.items);
+      reserva = await catalog.reserveStock(referenciaIntento, checkout.items);
     } catch (e) {
       await checkouts.resetConfirmation(checkoutId);
       throw e;
@@ -90,13 +97,18 @@ function createCheckoutService({
       total: checkout.total,
       descuentosAplicados: checkout.descuentosAplicados,
     };
+    
     try {
       await checkouts.savePedidoYConfirmar(checkoutId, pedido);
     } catch (e) {
+      // INT-06: Si falla el guardado, devolvemos stock, sumamos un intento y lo devolvemos a PENDIENTE
       await catalog.releaseReservation(reserva.reservaId); // nunca lanza
-      await checkouts.resetConfirmation(checkoutId).catch(() => {});
+      await checkouts.resetConfirmationYSumarIntento(checkoutId).catch(() => {});
       throw new AppError(500, 'ERROR_INTERNO', 'No se pudo guardar el pedido; el stock fue devuelto');
     }
+
+    // HU-11: Registrar en el histórico secundario (PostgreSQL). Nunca lanza.
+    await history.recordOrder(pedido);
 
     // 3) Vaciar el carrito. Si falla, el pedido ya existe y no se deshace.
     try {

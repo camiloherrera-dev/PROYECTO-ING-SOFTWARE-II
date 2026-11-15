@@ -1,0 +1,9 @@
+# Compose carga este archivo solo: "docker compose up --build" levanta el modo desarrollo con recarga automática.
+services:
+  carrito:
+    build:
+      target: dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+    restart: "no"

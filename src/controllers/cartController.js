@@ -28,4 +28,8 @@ module.exports = {
   clearCart: handle(async (req, res) => { // HU-05 (Santiago, movido desde la ruta)
     res.status(200).json(await cartService.clearCart(req.userId));
   }),
+
+  recoverCart: handle(async (req, res) => { // HU-12 (Camilo)
+    res.status(200).json(await cartService.recoverCart(req.userId));
+  }),
 };
