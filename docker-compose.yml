@@ -42,13 +42,19 @@ services:
     env_file: [.env]
     environment:
       REDIS_URL: redis://redis:6379
+      # Entornos para CATALOG_BASE_URL:
+      # - Mock propio (plan B, por defecto aquí): http://catalog-mock:4000/api/catalogo
+      # - Kong de B (desde el compose de integración): http://kong:8000/api/catalogo
+      # - Kong de B (desde tu máquina): http://localhost:8000/api/catalogo
       CATALOG_BASE_URL: http://catalog-mock:4000/api/catalogo
       DATABASE_URL: postgres://carrito:carrito_dev@postgres:5432/carrito
     depends_on:
       redis: { condition: service_healthy }
       postgres: { condition: service_healthy }
       catalog-mock: { condition: service_started }
+
     restart: unless-stopped
+
 
   kong:
     image: kong:3.7
