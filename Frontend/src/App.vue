@@ -48,7 +48,8 @@ if (porAgregar) cart.add(porAgregar, 1).finally(() => { agregando.value = false;
     <p v-else-if="agregando">Agregando el producto…</p>
     <template v-else>
       <template v-if="co.paso === 'carrito'">
-        <ProductsDemo />
+        <!-- Botones de prueba para usarlo solo; dentro del Host App se agrega desde Catálogo. -->
+        <ProductsDemo v-if="!embebido" />
         <CartView />
       </template>
       <CheckoutView v-else-if="co.paso === 'checkout'" />
@@ -60,6 +61,6 @@ if (porAgregar) cart.add(porAgregar, 1).finally(() => { agregando.value = false;
 <style scoped>
 .aviso { display: flex; gap: .75rem; align-items: center; padding: .75rem 1rem; background: #fff7ed; border: 1px solid #fed7aa; border-radius: .5rem; }
 .menu { display: flex; gap: .5rem; margin-bottom: 1rem; }
-.menu button { padding: .55rem .9rem; color: #173c78; background: #fff; border: 1px solid #cbd5e1; border-radius: .5rem; cursor: pointer; }
-.menu button:disabled { color: #fff; background: #173c78; border-color: #173c78; cursor: default; }
+.menu button { padding: .55rem .9rem; color: var(--acento); background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio); cursor: pointer; }
+.menu button:disabled { color: #fff; background: var(--acento); border-color: var(--acento); opacity: 1; cursor: default; }
 </style>
