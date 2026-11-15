@@ -17,6 +17,9 @@ const config = {
   autoMigrate: process.env.AUTO_MIGRATE !== 'false', // con false no se migra al arrancar
   cartInactivityHours: Number(process.env.CART_INACTIVITY_HOURS) || 1, // HU-12
   discountRulesCacheMs: Number(process.env.DISCOUNT_RULES_CACHE_MS) || 60000,
+  // SCRUM-27: "postgres" (tabla reglas_descuento) o "codigo". Las pruebas (Jest y node --test) usan "codigo"
+  discountRulesSource: process.env.DISCOUNT_RULES_SOURCE
+    || (process.env.NODE_ENV === 'test' || process.env.NODE_TEST_CONTEXT ? 'codigo' : 'postgres'),
   rateLimitMax: Number(process.env.RATE_LIMIT_MAX) || 120,
   rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
   shutdownTimeoutMs: Number(process.env.SHUTDOWN_TIMEOUT_MS) || 10000,

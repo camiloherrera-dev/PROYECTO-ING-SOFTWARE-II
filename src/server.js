@@ -4,6 +4,7 @@ const { connectRedis, disconnectRedis } = require('./redis/redisClient');
 const { connectDb, pool } = require('./db/pool');
 const { runMigrations } = require('./db/migrate');
 const { registrarEnEureka } = require('./clients/registroEureka');
+const { getActiveRules } = require('./discounts/discountRules');
 
 async function start() {
   await connectRedis(); // obligatorio: sin Redis no hay carrito
@@ -15,6 +16,8 @@ async function start() {
     // PostgreSQL es opcional: el carrito arranca sin histórico y /ready informa "degraded"
     console.error('PostgreSQL no disponible al arrancar (modo degradado):', e.message);
   }
+  // Precarga las reglas de descuento: la primera petición no espera a PostgreSQL (DISCOUNT_TIMEOUT_MS es corto)
+  await getActiveRules().catch(() => {});
 
   const server = app.listen(port, () => console.log(`Carrito escuchando en :${port}`));
 
