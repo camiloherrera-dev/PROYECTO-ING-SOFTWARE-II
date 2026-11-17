@@ -52,7 +52,7 @@ No pasan por Kong. Redis es obligatorio; PostgreSQL es opcional: sin él el carr
 | Mock de Catálogo | 4000 | `GET /api/catalogo/productos/:id` |
 | Redis | 6379 | Hash `carrito:<userId>`, TTL de 7 días |
 | PostgreSQL | 5432 | Historial de pedidos y reglas de descuento (usuario y base `carrito`) |
-| Frontend (Vite) | 5173 | Interfaz Vue |
+| Frontend (Vite) | 5175 | Interfaz Vue (el 5173 es de Catálogo, según el contrato del Host App) |
 
 ## Endpoints
 
@@ -80,7 +80,7 @@ PostgreSQL guarda el historial de pedidos (`pedidos`, `pedido_items`) y las regl
 
 ## Variables de entorno
 
-Ver `.env.example`. Las del Sprint 4: `DATABASE_URL`, `DB_POOL_MAX`, `AUTO_MIGRATE`, `CART_INACTIVITY_HOURS`, `DISCOUNT_RULES_CACHE_MS`, `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_MS` y `SHUTDOWN_TIMEOUT_MS`.
+Ver `.env.example`. Las del Sprint 4: `DATABASE_URL`, `DB_POOL_MAX`, `AUTO_MIGRATE`, `CART_INACTIVITY_HOURS`, `DISCOUNT_RULES_CACHE_MS`, `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_MS` y `SHUTDOWN_TIMEOUT_MS`. Las del Sprint 5: `DISCOUNT_RULES_SOURCE`, `DISCOUNT_JEAN_ID`, `DISCOUNT_CAMISETA_ID`, `KEYCLOAK_LLAVES`, `KEYCLOAK_EMISOR` y `EUREKA_URL`. La tabla completa está en la sección 9 de `docs/contrato-v1.4.md`.
 
 ## Token de prueba
 
@@ -90,7 +90,7 @@ Todas las rutas de `/api/carrito` exigen `Authorization: Bearer <JWT>`. El `user
 npm run token -- usr_demo
 ```
 
-El secreto es `JWT_SECRET` en `.env`. Es un secreto simulado solo para pruebas; Keycloak real queda fuera del alcance.
+El secreto es `JWT_SECRET` en `.env`, simulado solo para pruebas. Con `KEYCLOAK_LLAVES` definida también se aceptan los tokens RS256 de Keycloak del Host App.
 
 ### Probar el carrito por Kong
 
@@ -138,10 +138,10 @@ En Windows también funciona `run-tests.cmd`, que guarda la salida en `test-resu
 ```bash
 cd Frontend
 npm install
-npm run dev   # http://localhost:5173
+npm run dev   # http://localhost:5175
 ```
 
-El frontend habla con Kong (`http://localhost:8000/api/carrito`), así que el backend debe estar corriendo con Docker Compose.
+El frontend habla con Kong (`http://localhost:8000/api/carrito`), así que el backend debe estar corriendo con Docker Compose. Si Kong usa otro puerto: `CARRITO_API_PROXY=http://localhost:8100 npm run dev`.
 
 ## Estructura
 
@@ -173,7 +173,7 @@ docs/                      Plan de pruebas, colección Postman, contrato v1.4
 
 ## Reglas de descuento
 
-El Módulo Descuentos (`src/discounts/`) calcula los descuentos de cada respuesta del carrito. Hoy las reglas se leen de `src/discounts/discountRules.js`. La tabla `reglas_descuento` ya está creada y sembrada con las mismas tres reglas; leerlas desde PostgreSQL con caché de 60 segundos es el stretch SCRUM-27, pendiente.
+El Módulo Descuentos (`src/discounts/`) calcula los descuentos de cada respuesta del carrito. Desde el Sprint 5 (SCRUM-27) las reglas se leen de la tabla `reglas_descuento` de PostgreSQL, con caché de 60 segundos (`DISCOUNT_RULES_CACHE_MS`). Si PostgreSQL falla, se usan las últimas leídas o las de `src/discounts/discountRules.js`. Con `DISCOUNT_RULES_SOURCE=codigo` solo se usan las del código. `DISCOUNT_JEAN_ID` y `DISCOUNT_CAMISETA_ID` cambian el producto de cada regla para usar los ids reales de Catálogo.
 
 | Regla | Tipo | Efecto |
 | --- | --- | --- |
@@ -185,28 +185,23 @@ Política: por ítem se aplica solo la mejor regla (no se acumulan); la regla de
 
 ## Acuerdos con Catálogo
 
-Respuesta del equipo de Catálogo del 27/10/2026 (responsable en Carrito: Juan David).
+Respuesta del equipo de Catálogo del 27/10/2026, actualizada con Catálogo v2.4 en el Sprint 5 (responsable en Carrito: Juan David).
 
 | Tema | Acuerdo |
 | --- | --- |
 | Producto | `GET /productos/{id}` → `{ id, nombre, precio, activo, stock, categoria, ... }`. Los ids son ObjectId de MongoDB (24 caracteres hexadecimales) |
 | Stock | Entero ≥ 0, ya disponible |
 | Inactivo | 200 con `activo: false`; el 404 es solo para un id que no existe |
-| Categoría | Viene el id (por ejemplo `cat-ropa`); los nombres salen de `GET /categorias`. Falta confirmar el nombre exacto del campo |
-| Descontar stock | `POST /productos/descontar-stock` con `{ items: [{ id, cantidad }] }` → 200 `{ items: [{ id, stockRestante }] }` · 409 `STOCK_INSUFICIENTE` con los ids en el mensaje. Todo o nada |
+| Categoría | Viene el id (por ejemplo `cat-ropa`); los nombres salen de `GET /categorias` |
+| Descontar stock | `POST /productos/descontar-stock` con `{ referencia, items: [{ id, cantidad }] }` → 200 `{ referencia, items: [{ id, stockRestante }] }` · 409 `STOCK_INSUFICIENTE` con `items` · 409 `REFERENCIA_EN_USO`. Todo o nada; la misma referencia no descuenta dos veces |
+| Devolver stock | `POST /productos/devolver-stock` con `{ referencia }` → 204. Idempotente; cierra la referencia |
 | Reservas | No existen: el descuento es definitivo y no vence |
-| Token | Ningún endpoint de Catálogo valida token (Keycloak no está integrado en esta entrega) |
-| URL | Por su Kong: `http://localhost:8000/api/catalogo`. Directo: `http://localhost:8080`, sin el prefijo. Por ahora cada equipo levanta su propio Kong |
+| Token | Ningún endpoint de Catálogo valida token |
+| URL | Por el Kong de B: `http://kong:8000/api/catalogo` en el compose de integración, `http://localhost:8000/api/catalogo` desde tu máquina. Directo, solo para depurar: `http://localhost:8080`, sin el prefijo |
 
 **Configuración:** `CATALOG_BASE_URL` incluye el prefijo. Mock: `http://catalog-mock:4000/api/catalogo` (por defecto en Docker Compose). Ver "Integración con otros equipos" para apuntar al Catálogo real.
 
-**Propuesto a Catálogo, pendiente de respuesta:**
-
-- `referencia` opcional (el `checkoutId`) en `descontar-stock`, para que un reintento no descuente dos veces. El cliente ya la envía.
-- `POST /productos/devolver-stock` con `{ referencia }`, para devolver el stock si falla guardar el pedido. Mientras no exista, el fallo queda en consola para devolverlo a mano.
-- Que el 409 traiga también `items` en el cuerpo. El cliente ya lo usa si llega.
-
-**Riesgo conocido** hasta que exista la `referencia`: si la respuesta de Catálogo llega después de nuestro timeout, el carrito responde 503 y un reintento del cliente descontaría el stock dos veces. El mock ya implementa la propuesta completa.
+**Referencia por intento (INT-06):** el primer intento de confirmar usa el `checkoutId` como `referencia`; un reintento por red reusa la misma. Si guardar el pedido falla, el Carrito devuelve el stock y el siguiente intento usa `checkoutId-r1`, `checkoutId-r2`, etc. El acuerdo completo con los otros equipos está en `docs/contrato-integracion.md`.
 
 El historial de la integración del Sprint 1 está en `docs/historico/INTEGRACION-EQUIPO.md`.
 
@@ -216,17 +211,19 @@ Todo se configura en `.env`, sin editar `docker-compose.yml` (ver el bloque "Int
 
 | Necesidad | Variable en `.env` |
 | --- | --- |
-| Usar el Catálogo real en vez del mock | `DOCKER_CATALOG_BASE_URL=http://host.docker.internal:8080` (directo, sin prefijo) |
-| Levantar nuestro Kong junto al de Catálogo (los dos usan 8000) | `KONG_PROXY_PORT=8100` y `KONG_ADMIN_PORT=8101`. Nuestra API queda en `http://localhost:8100/api/carrito`; para el frontend, `KONG_URL=http://localhost:8100 npm run dev`; para el E2E, `BASE_URL=http://localhost:8100` |
+| Usar el Catálogo real en vez del mock | `DOCKER_CATALOG_BASE_URL=http://host.docker.internal:8000/api/catalogo` (Kong de B corriendo en tu máquina) |
+| Levantar nuestro Kong junto al de Catálogo (los dos usan 8000) | `KONG_PROXY_PORT=8100` y `KONG_ADMIN_PORT=8101`. Nuestra API queda en `http://localhost:8100/api/carrito`; para el frontend, `CARRITO_API_PROXY=http://localhost:8100 npm run dev`; para el E2E, `BASE_URL=http://localhost:8100` |
 | PostgreSQL local ocupando el 5432 | `POSTGRES_HOST_PORT=5433` |
+| Registrarse en Eureka | `EUREKA_URL` con el servidor del compose de integración |
+| Aceptar tokens de Keycloak | `KEYCLOAK_LLAVES` (URL de los certs del realm) y `KEYCLOAK_EMISOR` |
 
-- **Autenticación:** el Carrito acepta un JWT HS256 firmado con `JWT_SECRET`, con el usuario en el claim `sub`. Quien emita los tokens (Host App o login) debe usar el mismo secreto. Keycloak queda fuera de alcance.
-- **CORS:** Kong acepta el frontend del Carrito (`localhost:5173`) y cualquier `localhost` o `127.0.0.1` con puerto, así que un Host App local funciona sin cambios. Al desplegar, se reemplaza por los orígenes reales en `kong/kong.yml`.
-- **Contrato:** `docs/contrato-v1.4.md`.
+- **Autenticación:** el Carrito acepta un JWT HS256 firmado con `JWT_SECRET` y, si `KEYCLOAK_LLAVES` está definida, los RS256 de Keycloak. El usuario sale siempre del claim `sub`.
+- **CORS:** Kong acepta el frontend del Carrito (`localhost:5175`) y cualquier `localhost` o `127.0.0.1` con puerto, así que un Host App local funciona sin cambios. Al desplegar, se reemplaza por los orígenes reales en `kong/kong.yml`.
+- **Contratos:** `docs/contrato-v1.4.md` (API REST del Carrito) y `docs/contrato-integracion.md` (acuerdos con Búsqueda, Catálogo y Host App).
 
 ## Limitaciones conocidas
 
 - Un pedido confirmado mientras PostgreSQL está caído queda solo en Redis (30 días); no hay reconciliación automática.
-- Catálogo no tiene reservas: el descuento de stock es definitivo. Pendientes de Catálogo: `referencia` para no descontar dos veces y `devolver-stock`.
+- Catálogo no tiene reservas: el descuento de stock es definitivo. Si devolver el stock falla, queda en el log para devolverlo a mano.
 - El límite de peticiones vive en la memoria de cada instancia.
 - El frontend corre por separado; su integración con el Host App no está resuelta.

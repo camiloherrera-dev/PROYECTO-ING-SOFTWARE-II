@@ -43,14 +43,19 @@ services:
     environment:
       REDIS_URL: redis://redis:6379
       # Catálogo visto DESDE el contenedor (no es el CATALOG_BASE_URL de .env, que es para correr fuera de Docker).
-      # Catálogo real directo: DOCKER_CATALOG_BASE_URL=http://host.docker.internal:8080 en .env
+      # Se cambia con DOCKER_CATALOG_BASE_URL en .env:
+      # - Mock propio (plan B, por defecto): http://catalog-mock:4000/api/catalogo
+      # - Kong de B (desde el compose de integración): http://kong:8000/api/catalogo
+      # - Kong de B (corriendo en tu máquina): http://host.docker.internal:8000/api/catalogo
       CATALOG_BASE_URL: ${DOCKER_CATALOG_BASE_URL:-http://catalog-mock:4000/api/catalogo}
       DATABASE_URL: postgres://carrito:carrito_dev@postgres:5432/carrito
     depends_on:
       redis: { condition: service_healthy }
       postgres: { condition: service_healthy }
       catalog-mock: { condition: service_started }
+
     restart: unless-stopped
+
 
   kong:
     image: kong:3.7

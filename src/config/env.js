@@ -17,10 +17,17 @@ const config = {
   autoMigrate: process.env.AUTO_MIGRATE !== 'false', // con false no se migra al arrancar
   cartInactivityHours: Number(process.env.CART_INACTIVITY_HOURS) || 1, // HU-12
   discountRulesCacheMs: Number(process.env.DISCOUNT_RULES_CACHE_MS) || 60000,
+  // SCRUM-27: "postgres" (tabla reglas_descuento) o "codigo". Las pruebas (Jest y node --test) usan "codigo"
+  discountRulesSource: process.env.DISCOUNT_RULES_SOURCE
+    || (process.env.NODE_ENV === 'test' || process.env.NODE_TEST_CONTEXT ? 'codigo' : 'postgres'),
   rateLimitMax: Number(process.env.RATE_LIMIT_MAX) || 120,
   rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
   shutdownTimeoutMs: Number(process.env.SHUTDOWN_TIMEOUT_MS) || 10000,
   jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me',
+  // ---- Login con Keycloak (contrato del Host App v1.3; contrato de Catálogo v2.5, sección 10.6) ----
+  // Vacío = solo se aceptan los tokens HS256 firmados con JWT_SECRET, como antes.
+  keycloakLlaves: process.env.KEYCLOAK_LLAVES || '', // http://keycloak:8080/realms/tienda/protocol/openid-connect/certs
+  keycloakEmisor: process.env.KEYCLOAK_EMISOR || 'http://localhost:8180/realms/tienda',
 };
 
 // En producción no se acepta el secreto de pruebas

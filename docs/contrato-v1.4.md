@@ -3,15 +3,33 @@
 | Campo | Valor |
 | --- | --- |
 | Versión | 1.4 (reemplaza la v1.3) |
-| Fecha | Noviembre de 2026 — Sprint 4 (versión del servicio 1.0.0) |
+| Fecha | 16/11/2026 — Sprint 5 (versión del servicio 1.1.0; la v1.4 salió en el Sprint 4 con la 1.0.0) |
 | Responsable | Camilo Andres Herrera Celis (con Juan David Gómez para los acuerdos con Catálogo) |
 | Revisor | Santiago Torres Barbosa |
-| Destinatarios | Equipos de Catálogo y Búsqueda; frontend del Carrito |
-| Estado | Versión final del Sprint 4. Los puntos de la sección 7.2 siguen pendientes de respuesta de Catálogo |
+| Destinatarios | Equipos de Catálogo, Búsqueda y Host App; frontend del Carrito |
+| Estado | Versión final del Sprint 5. Incluye la integración con Catálogo v2.4, el Kong de B, Keycloak y Eureka |
+| Ver también | `docs/contrato-integracion.md`: qué ofrece y qué espera el Carrito de cada equipo en la entrega integrada |
 
 Este documento describe el contrato REST del Carrito al final del Sprint 4: los cinco endpoints del carrito, los tres del flujo de compra (disponibilidad, checkout y confirmación de pedido) y los tres nuevos de historial (HU-11) y recuperación del carrito (HU-12). Donde una versión anterior dice otra cosa, prevalece este documento.
 
-## 0. Cambios v1.3 → v1.4
+## 0. Cambios del Sprint 5 (misma v1.4, servicio 1.1.0)
+
+Los endpoints y las formas de respuesta no cambian. Lo nuevo es cómo el Carrito habla con los otros equipos.
+
+| Cambio | Detalle |
+| --- | --- |
+| Error nuevo | `409 REFERENCIA_EN_USO` al confirmar: Catálogo rechazó la referencia del intento (sección 5) |
+| Referencia por intento | `descontar-stock` recibe `checkoutId` y, tras una devolución, `checkoutId-r1`, `checkoutId-r2`... Un reintento no descuenta dos veces (sección 7.2) |
+| Devolver stock | Catálogo v2.4 ya expone `devolver-stock`; el Carrito lo llama si falla guardar el pedido (sección 3.8) |
+| Catálogo por Kong | La URL base recomendada es la del Kong de B: `http://kong:8000/api/catalogo` en el compose de integración (sección 7) |
+| Ids de producto | Catálogo usa ObjectId de MongoDB. Las reglas toman los ids de `DISCOUNT_JEAN_ID` y `DISCOUNT_CAMISETA_ID` (sección 6.1) |
+| Reglas en PostgreSQL | SCRUM-27 activo: las reglas se leen de `reglas_descuento` con caché y respaldo (sección 6.1) |
+| Keycloak | Además de HS256, se aceptan tokens RS256 de Keycloak si se define `KEYCLOAK_LLAVES` (sección 2) |
+| Eureka | Con `EUREKA_URL` el servicio se registra en Eureka y envía latidos (sección 9) |
+| Frontend | Puerto fijo `5175` (el `5173` es de Catálogo), según el contrato del Host App v1.2 |
+| Configuración | `DISCOUNT_RULES_SOURCE`, `DISCOUNT_JEAN_ID`, `DISCOUNT_CAMISETA_ID`, `KEYCLOAK_LLAVES`, `KEYCLOAK_EMISOR`, `EUREKA_URL` (sección 9) |
+
+### 0.0 Cambios v1.3 → v1.4 (Sprint 4)
 
 | Cambio | Detalle |
 | --- | --- |
@@ -60,18 +78,18 @@ Los ocho endpoints de la v1.3 y sus respuestas no cambian, así que un cliente d
 
 El Carrito permite a un cliente autenticado agregar, consultar, modificar, eliminar y vaciar los productos de su carrito, con el subtotal, los descuentos aplicados y el total en cada respuesta. Desde la v1.3 también permite pasar del carrito a un pedido confirmado: verificar disponibilidad, congelar un resumen de compra y confirmarlo descontando el stock en Catálogo. Desde la v1.4 el cliente consulta el historial de sus pedidos (guardado en PostgreSQL) y recupera su carrito después de un periodo de inactividad, con aviso de lo que cambió.
 
-Fuera de este contrato: pago real (el pedido nace `CONFIRMADO` sin cobro), despliegue conjunto con los otros microservicios, eventos RabbitMQ (solo si otro equipo los pide), Keycloak real, Module Federation con el Host App, cupones y descuentos por categoría, y la devolución de stock mientras Catálogo no publique `devolver-stock`.
+Fuera de este contrato: pago real (el pedido nace `CONFIRMADO` sin cobro), despliegue conjunto con los otros microservicios, eventos RabbitMQ (solo si otro equipo los pide), Module Federation con el Host App, cupones y descuentos por categoría. Keycloak y el Host App sí entran desde el Sprint 5 (secciones 2 y 9).
 
 ## 2. Convenciones generales
 
-- **Entrada:** todas las peticiones pasan por Kong (`http://localhost:8000` en local). El servicio escucha internamente en el puerto `3000`.
-- **Autenticación:** todas las rutas exigen `Authorization: Bearer <JWT>` firmado con HS256. El usuario sale **siempre** del claim `sub` del token; nunca del cuerpo, la query ni la ruta (RNF-02). Un token sin `sub`, expirado, mal firmado o ausente responde `401 NO_AUTORIZADO`.
+- **Entrada:** todas las peticiones pasan por Kong (`http://localhost:8000` en local; en la integración, el Kong de B). El servicio escucha internamente en el puerto `3000`. El frontend del Carrito corre en el `5175`.
+- **Autenticación:** todas las rutas exigen `Authorization: Bearer <JWT>`. Se acepta HS256 firmado con `JWT_SECRET` y, si `KEYCLOAK_LLAVES` está definida, RS256 de Keycloak verificado con esas llaves y con el emisor `KEYCLOAK_EMISOR`. El usuario sale **siempre** del claim `sub` del token; nunca del cuerpo, la query ni la ruta (RNF-02). Un token sin `sub`, expirado, mal firmado o ausente responde `401 NO_AUTORIZADO`.
 - **Formato:** JSON en UTF-8 (`Content-Type: application/json`). Solo `POST /items` y `PUT /items/{productId}` llevan cuerpo. El cuerpo admite hasta 100 kb; uno mayor responde `400 VALIDACION_FALLIDA`.
 - **Dinero:** pesos colombianos (COP) como enteros. Cada monto calculado se redondea con `Math.round`.
 - **Cantidades:** enteros `>= 1`. `1.5`, `0`, negativos o `"3"` (texto) responden `400 VALIDACION_FALLIDA`.
 - **Precios:** el precio y el nombre del producto salen siempre de Catálogo, nunca del cliente (RF-13, RF-14).
 - **Fechas:** ISO 8601 en UTC (`2026-11-05T15:30:00.000Z`).
-- **CORS (Kong):** orígenes `http://localhost:5173` y cualquier `http(s)://localhost` o `127.0.0.1` con puerto (integración local con el Host App); métodos `GET, POST, PUT, DELETE, OPTIONS`; cabeceras `Authorization, Content-Type`; expone `X-RateLimit-Limit`, `X-RateLimit-Remaining` y `Retry-After`. Al desplegar, la expresión se reemplaza por los orígenes reales en `kong/kong.yml`.
+- **CORS (Kong):** orígenes `http://localhost:5175` y cualquier `http(s)://localhost` o `127.0.0.1` con puerto (integración local con el Host App); métodos `GET, POST, PUT, DELETE, OPTIONS`; cabeceras `Authorization, Content-Type`; expone `X-RateLimit-Limit`, `X-RateLimit-Remaining` y `Retry-After`. Al desplegar, la expresión se reemplaza por los orígenes reales en `kong/kong.yml`.
 - **Cabeceras de seguridad (nuevo):** todas las respuestas llevan `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` y `Cache-Control: no-store`.
 - **Límite de peticiones (nuevo):** por usuario (claim `sub`), `RATE_LIMIT_MAX` peticiones (120) por ventana de `RATE_LIMIT_WINDOW_MS` (60 s). Cada respuesta de `/api/carrito/*` trae `X-RateLimit-Limit` y `X-RateLimit-Remaining`; al superarlo responde `429 DEMASIADAS_PETICIONES` con `Retry-After` (segundos). El contador vive en la memoria de cada instancia.
 - **Salud (puerto 3000, sin autenticación y sin Kong):**
@@ -94,7 +112,7 @@ Fuera de este contrato: pago real (el pedido nace `CONFIRMADO` sin cobro), despl
 | `DELETE /api/carrito` | HU-05 | — | `200` con `items: []` y totales en 0, también si el carrito no existía (idempotente) · `401` |
 | `GET /api/carrito/disponibilidad` | HU-09 | — | `200` estado por ítem · `400 CARRITO_VACIO` · `401` · `503` |
 | `POST /api/carrito/checkout` | HU-08 | — | `201` snapshot con `checkoutId` y `expiraEn` · `400 CARRITO_VACIO` · `409 CARRITO_NO_DISPONIBLE` · `401` · `503` |
-| `POST /api/carrito/checkout/{checkoutId}/confirmar` | HU-10 | — | `201` pedido nuevo · `200` ya confirmado (mismo pedido) · `404 CHECKOUT_NO_ENCONTRADO` · `409 CHECKOUT_REEMPLAZADO` / `CHECKOUT_EXPIRADO` / `CONFIRMACION_EN_CURSO` / `STOCK_INSUFICIENTE` · `401` · `503` |
+| `POST /api/carrito/checkout/{checkoutId}/confirmar` | HU-10 | — | `201` pedido nuevo · `200` ya confirmado (mismo pedido) · `404 CHECKOUT_NO_ENCONTRADO` · `409 CHECKOUT_REEMPLAZADO` / `CHECKOUT_EXPIRADO` / `CONFIRMACION_EN_CURSO` / `STOCK_INSUFICIENTE` / `REFERENCIA_EN_USO` · `401` · `503` |
 | `GET /api/carrito/pedidos?limit=10&offset=0` (nuevo) | HU-11 | — | `200` lista paginada · `400 VALIDACION_FALLIDA` · `401` |
 | `GET /api/carrito/pedidos/{pedidoId}` (nuevo) | HU-11 | — | `200` pedido completo · `404 PEDIDO_NO_ENCONTRADO` (no existe o es de otro usuario) · `401` |
 | `GET /api/carrito/recuperar` (nuevo) | HU-12 | — | `200` carrito con el bloque `recuperacion` · `401` · `503` si Catálogo cae |
@@ -174,7 +192,8 @@ Cualquier endpoint de `/api/carrito/*` puede responder además `429 DEMASIADAS_P
 - Después de `expiraEn` → `409 CHECKOUT_EXPIRADO`; el cliente vuelve a iniciar el pago.
 - Si otra petición está confirmando el mismo checkout en ese momento → `409 CONFIRMACION_EN_CURSO`.
 - Catálogo rechaza el descuento → `409 STOCK_INSUFICIENTE` con los productos que fallaron; el checkout vuelve a `PENDIENTE` y se puede reintentar.
-- Si guardar el pedido falla después de descontar, se pide a Catálogo devolver el stock (`devolver-stock`, propuesto; ver sección 7.2). Mientras Catálogo no lo exponga, el fallo queda en el log para devolverlo a mano.
+- Catálogo rechaza la referencia del intento → `409 REFERENCIA_EN_USO`; no se descontó nada (sección 7.2).
+- Si guardar el pedido falla después de descontar, se llama a `devolver-stock` con la referencia del intento, el checkout suma un intento y vuelve a `PENDIENTE`, y la respuesta es `500 ERROR_INTERNO`. El siguiente intento usa una referencia nueva. Si la devolución también falla, queda en el log para devolverla a mano.
 - Vaciar el carrito borra también lo que el cliente agregó después del checkout. Un fallo al vaciarlo no deshace el pedido.
 - **Desde la v1.4:** después de guardar el pedido en Redis se registra en el histórico de PostgreSQL (sección 3.9). Si PostgreSQL falla, el pedido no se pierde ni se rechaza: el error queda en el log y la respuesta es la misma. El registro es idempotente por `checkout_id`.
 
@@ -424,6 +443,7 @@ Los 409 `CARRITO_NO_DISPONIBLE` y `STOCK_INSUFICIENTE` agregan `items` con los p
 | 409 | `CHECKOUT_EXPIRADO` | Confirmar después de `expiraEn` (15 min) |
 | 409 | `CONFIRMACION_EN_CURSO` | Otra petición está confirmando el mismo checkout |
 | 409 | `STOCK_INSUFICIENTE` | Catálogo rechazó el descuento de stock; trae `items` |
+| 409 | `REFERENCIA_EN_USO` (Sprint 5) | Catálogo ya usó o cerró la referencia de este intento con otros ítems. No se descontó stock |
 | 429 | `DEMASIADAS_PETICIONES` (nuevo) | El usuario superó el límite de peticiones; la respuesta trae `Retry-After` |
 | 503 | `CATALOGO_NO_DISPONIBLE` | Catálogo no responde, responde con error, excede el timeout o devuelve un formato inválido |
 | 503 | `SERVICIO_NO_DISPONIBLE` (nuevo) | Redis o PostgreSQL no responden (error de conexión: `ECONNREFUSED`, `ECONNRESET`, `ETIMEDOUT`, `EPIPE`). El historial no lo produce por PostgreSQL: usa el respaldo de Redis |
@@ -443,7 +463,14 @@ Los descuentos se calculan dentro del mismo proceso del Carrito (`src/discounts/
 | `CANTIDAD_MINIMA` | `productIds`, `cantidadMinima`, `porcentaje` | `DESC-CAMISETA-3X`: 15% en `prod_001` desde 3 unidades | 3 camisetas (149.700) → 22.455; 2 camisetas → 0 |
 | `MONTO_MINIMO_CARRITO` | `montoMinimo`, `porcentaje` | `DESC-CARRITO-300K`: 5% si lo que queda tras los descuentos por ítem es ≥ 300.000 | 361.065 → 18.053 |
 
-Cada regla tiene además `id`, `descripcion`, `activa` y, opcionales, `vigenteDesde` / `vigenteHasta`. Las reglas se leen con `getActiveRules()` desde `src/discounts/discountRules.js`. La tabla `reglas_descuento` ya existe en PostgreSQL con las tres reglas de la demo sembradas, pero leerlas de ahí (con caché de `DISCOUNT_RULES_CACHE_MS` y respaldo en el código) es el stretch SCRUM-27 y **todavía no está activo**. Cuando entre, solo cambia `getActiveRules()` y el comportamiento visible es el mismo.
+Cada regla tiene además `id`, `descripcion`, `activa` y, opcionales, `vigenteDesde` / `vigenteHasta`. Las reglas se leen con `getActiveRules()` desde `src/discounts/discountRules.js`.
+
+**Desde el Sprint 5 (SCRUM-27)** la fuente por defecto es la tabla `reglas_descuento` de PostgreSQL (`DISCOUNT_RULES_SOURCE=postgres`):
+
+- Las reglas se guardan en caché `DISCOUNT_RULES_CACHE_MS` (60 s). Para cambiar una regla basta con un `UPDATE` en la tabla; se ve como máximo un minuto después.
+- Si PostgreSQL no responde, se usan las últimas reglas leídas o, si nunca se leyeron, las del código. Un fallo también se guarda en caché, para no consultar una base caída en cada petición.
+- `DISCOUNT_JEAN_ID` y `DISCOUNT_CAMISETA_ID` reemplazan los `productIds` de esas dos reglas, vengan del código o de la tabla. Así se usan los ObjectId reales de Catálogo sin tocar la base ni el código.
+- Con `DISCOUNT_RULES_SOURCE=codigo` solo se usan las reglas del código (es lo que usan las pruebas unitarias).
 
 ### 6.2 Política de aplicación
 
@@ -458,15 +485,22 @@ Si el Módulo Descuentos lanza un error o tarda más de `DISCOUNT_TIMEOUT_MS` (2
 
 ## 7. Integración con Catálogo
 
-Acuerdo con el equipo de Catálogo del 27/10/2026. Catálogo **no tiene reservas**: confirmar un pedido descuenta el stock de forma definitiva. Cualquier ajuste a la forma real se limita a `src/clients/catalogClient.js` y al mock de `mocks/catalog-mock/`.
+Acuerdo con el equipo de Catálogo del 27/10/2026, actualizado en el Sprint 5 con Catálogo v2.4. Catálogo **no tiene reservas**: confirmar un pedido descuenta el stock de forma definitiva. Cualquier ajuste a la forma real se limita a `src/clients/catalogClient.js` y al mock de `mocks/catalog-mock/`. El detalle acordado con B está en `docs/contrato-integracion.md`, secciones 4 y 6.
 
-`CATALOG_BASE_URL` **incluye el prefijo**: `http://catalog-mock:4000/api/catalogo` (mock, por defecto en Docker Compose) o `http://host.docker.internal:8080` (Catálogo real directo, sin prefijo). Nuestro Kong y el de Catálogo usan los dos el puerto 8000, así que para integrar se usa el acceso directo.
+`CATALOG_BASE_URL` **incluye el prefijo**, porque el cliente le concatena `/productos/{id}`:
+
+| Entorno | `CATALOG_BASE_URL` |
+| --- | --- |
+| Mock propio (por defecto en Docker Compose) | `http://catalog-mock:4000/api/catalogo` |
+| Kong de B, desde el compose de integración (recomendado) | `http://kong:8000/api/catalogo` |
+| Kong de B, desde una máquina de desarrollo | `http://localhost:8000/api/catalogo` |
+| Catálogo directo, solo para depurar | `http://host.docker.internal:8080` (sin prefijo) |
 
 | Endpoint de Catálogo | Uso | Respuesta | Estado |
 | --- | --- | --- | --- |
 | `GET {CATALOG_BASE_URL}/productos/{id}` | Precio, nombre y estado (todas las HU); `stock` (HU-09) | `200 { id, nombre, precio, activo, stock, categoria, ... }` · `404` solo si el id no existe | Acordado |
-| `POST {CATALOG_BASE_URL}/productos/descontar-stock` | HU-10: descontar el stock del pedido, todo o nada | `200 { items: [{ id, stockRestante }] }` · `409 STOCK_INSUFICIENTE` con los ids en el `mensaje` | Acordado |
-| `POST {CATALOG_BASE_URL}/productos/devolver-stock` | HU-10: devolver el stock si falla guardar el pedido | `204` | **Propuesto**, aún no existe en Catálogo |
+| `POST {CATALOG_BASE_URL}/productos/descontar-stock` | HU-10: descontar el stock del pedido, todo o nada | `200 { referencia, items: [{ id, stockRestante }] }` · `409 REFERENCIA_EN_USO` · `409 STOCK_INSUFICIENTE` con `items` | Acordado (v2.4) |
+| `POST {CATALOG_BASE_URL}/productos/devolver-stock` | HU-10: devolver el stock si falla guardar el pedido | `204`, idempotente; cierra la referencia | Acordado (v2.4) |
 
 **Producto.** Los ids reales son ObjectId de MongoDB (24 caracteres hexadecimales); el mock usa `prod_00X`.
 
@@ -474,7 +508,7 @@ Acuerdo con el equipo de Catálogo del 27/10/2026. Catálogo **no tiene reservas
 { "id": "prod_001", "nombre": "Camiseta básica algodón", "precio": 49900, "activo": true, "stock": 20, "categoria": "cat-ropa" }
 ```
 
-**Descontar stock (cuerpo del POST).** El Carrito envía el `checkoutId` como `referencia`. Catálogo la ignora hoy; si la acepta (propuesta), un reintento con la misma referencia no descontará dos veces. El mock ya implementa la propuesta.
+**Descontar stock (cuerpo del POST).** El Carrito envía la referencia del intento (sección 7.2):
 
 ```json
 { "referencia": "chk_7f3a9c21-...", "items": [{ "id": "prod_001", "cantidad": 3 }, { "id": "prod_002", "cantidad": 2 }] }
@@ -485,33 +519,34 @@ Acuerdo con el equipo de Catálogo del 27/10/2026. Catálogo **no tiene reservas
 | Producto `200` con `activo: true` | Producto válido; se usan `nombre`, `precio` y `stock` |
 | Producto `200` con `activo: false`, o `404` | Inactivo: POST → `404`; GET → `disponible: false`; disponibilidad → `INACTIVO` |
 | Producto sin `stock` | `stock: null`: no rompe GET ni POST; el descuento de stock de HU-10 es el que protege |
-| Descontar `200` | El pedido guarda la `referencia` (el `checkoutId`) en `reservaId`; Catálogo no devuelve un id propio |
-| Descontar `409` | `409 STOCK_INSUFICIENTE`. `items` = los productos del pedido cuyo id aparece en el `mensaje` (o los `items` del cuerpo, si Catálogo algún día los envía) |
-| Otro código, timeout (`CATALOG_TIMEOUT_MS`, 3000 ms), error de red o JSON con otro esquema | `503 CATALOGO_NO_DISPONIBLE` |
+| Descontar `200` | El pedido guarda la referencia del intento en `reservaId`; Catálogo no devuelve un id propio |
+| Descontar `409 STOCK_INSUFICIENTE` | `409 STOCK_INSUFICIENTE` con los `items` del cuerpo (o, si no vienen, los productos cuyo id aparece en el `mensaje`) |
+| Descontar `409 REFERENCIA_EN_USO` | `409 REFERENCIA_EN_USO`; no se muestra como falta de stock |
+| Otro 409, otro código, timeout (`CATALOG_TIMEOUT_MS`, 3000 ms), error de red o JSON con otro esquema | `503 CATALOGO_NO_DISPONIBLE` |
 | Fallo al devolver stock | Se registra en el log para devolverlo a mano en Catálogo; no se propaga al cliente |
 
 ### 7.1 Acuerdos con Catálogo
 
-| # | Tema | Acuerdo (27/10/2026) |
+| # | Tema | Acuerdo |
 | --- | --- | --- |
 | 1 | Producto | `{ id, nombre, precio, activo, stock, categoria, ... }`; ids ObjectId de MongoDB |
 | 2 | Producto inactivo | `200` con `activo: false`; el `404` es solo para un id que no existe |
-| 3 | Stock | Entero ≥ 0, ya disponible |
-| 4 | Categoría | Viene el id (por ejemplo `cat-ropa`); los nombres salen de `GET /categorias`. Falta confirmar el nombre exacto del campo |
-| 5 | Descontar stock | `POST /productos/descontar-stock`, todo o nada |
-| 6 | Reservas | No existen: el descuento es definitivo y no vence |
-| 7 | Token | Ningún endpoint de Catálogo valida token (Keycloak no está integrado en esta entrega) |
-| 8 | URL | Por su Kong: `http://localhost:8000/api/catalogo`. Directo: `http://localhost:8080`, sin prefijo. Cada equipo levanta su propio Kong |
+| 3 | Stock | Entero ≥ 0 |
+| 4 | Categoría | Viene el id (por ejemplo `cat-ropa`); los nombres salen de `GET /categorias` |
+| 5 | Descontar stock | `POST /productos/descontar-stock`, todo o nada, con `referencia` opcional e idempotente (v2.4) |
+| 6 | Devolver stock | `POST /productos/devolver-stock` con `{ referencia }`, idempotente; cierra la referencia (v2.4) |
+| 7 | Reservas | No existen: el descuento es definitivo y no vence |
+| 8 | Token | Ningún endpoint de Catálogo valida token |
+| 9 | URL | En la integración, por el Kong de B: `/api/catalogo` con `strip_path: true` |
 
-### 7.2 Propuesto a Catálogo, pendiente de respuesta
+Las tres propuestas de la v1.4 original (`referencia`, `devolver-stock` e `items` en el 409) quedaron aceptadas en Catálogo v2.4. Con eso se cierra el riesgo de descontar dos veces cuando la respuesta de Catálogo llegaba después de nuestro timeout.
 
-| # | Propuesta | Por qué |
-| --- | --- | --- |
-| 1 | `referencia` opcional (el `checkoutId`) en `descontar-stock`, idempotente | Que un reintento no descuente dos veces. El Carrito ya la envía |
-| 2 | `POST /productos/devolver-stock` con `{ referencia }` | Devolver el stock si falla guardar el pedido. Mientras no exista, el fallo queda en el log para devolverlo a mano |
-| 3 | Que el `409` traiga `items` en el cuerpo | No depender de leer los ids en el `mensaje`. El Carrito ya los usa si llegan |
+### 7.2 Referencia por intento (Sprint 5, INT-06)
 
-> **Riesgo conocido** hasta que exista la `referencia`: si la respuesta de Catálogo llega después de nuestro timeout, el Carrito responde `503`, el checkout vuelve a `PENDIENTE`, y un reintento del cliente descontaría el stock dos veces.
+- El primer intento de confirmar un checkout usa el `checkoutId` como `referencia`.
+- Un reintento por red (sin respuesta, timeout o `503`) dentro del mismo intento usa **la misma referencia**: Catálogo responde `200` sin descontar otra vez.
+- Si el pedido falla al guardarse, el Carrito llama a `devolver-stock`, Catálogo cierra esa referencia y el checkout suma un intento. El siguiente intento usa `checkoutId-r1`, luego `checkoutId-r2`, etc.
+- Si Catálogo responde `409 REFERENCIA_EN_USO`, el Carrito lo propaga con el mismo código y el checkout vuelve a `PENDIENTE`.
 
 ## 8. Persistencia (referencia para otros equipos)
 
@@ -534,7 +569,7 @@ Redis sigue siendo la fuente del carrito, del checkout y del respaldo del histor
 | --- | --- | --- |
 | `pedidos` | Clave `pedido_id`; `checkout_id` único; `user_id`, `estado`, totales (`subtotal`, `descuento_total`, `total`), `creado_en` y `snapshot` JSONB | El índice por usuario y fecha sirve al listado. `checkout_id` único hace idempotente el registro |
 | `pedido_items` | Un renglón por producto del pedido | Se borra en cascada con el pedido |
-| `reglas_descuento` | Reglas del Módulo Descuentos | Con tres reglas de demostración sembradas. Todavía no se lee (stretch SCRUM-27) |
+| `reglas_descuento` | Reglas del Módulo Descuentos | Con tres reglas de demostración sembradas. Fuente de las reglas desde el Sprint 5 (sección 6.1) |
 | `schema_migrations` | Migraciones aplicadas | La llena el corredor de migraciones (`db/migrations/*.sql`) |
 
 | Operación | Implementación |
@@ -567,14 +602,19 @@ La clave del checkout dura más que su vigencia para poder responder confirmacio
 | `DB_POOL_MAX` (nuevo) | `5` | Tamaño del pool de conexiones |
 | `AUTO_MIGRATE` (nuevo) | `true` | Con `false` no se corren migraciones al arrancar |
 | `CART_INACTIVITY_HOURS` (nuevo) | `1` | Umbral de inactividad de HU-12 |
-| `DISCOUNT_RULES_CACHE_MS` (nuevo) | `60000` | Caché de las reglas en PostgreSQL (se usa cuando entre SCRUM-27) |
+| `DISCOUNT_RULES_CACHE_MS` (nuevo) | `60000` | Caché de las reglas leídas de PostgreSQL |
+| `DISCOUNT_RULES_SOURCE` (Sprint 5) | `postgres` (`codigo` en pruebas) | De dónde salen las reglas de descuento (sección 6.1) |
+| `DISCOUNT_JEAN_ID`, `DISCOUNT_CAMISETA_ID` (Sprint 5) | `prod_002`, `prod_001` | Ids de Catálogo para `DESC-JEAN-10` y `DESC-CAMISETA-3X` |
 | `RATE_LIMIT_MAX` (nuevo) | `120` | Peticiones por usuario y ventana |
 | `RATE_LIMIT_WINDOW_MS` (nuevo) | `60000` | Ventana del límite de peticiones |
 | `SHUTDOWN_TIMEOUT_MS` (nuevo) | `10000` | Tiempo máximo del cierre ordenado |
-| `DOCKER_CATALOG_BASE_URL` (nuevo, solo Docker Compose) | mock | `CATALOG_BASE_URL` que recibe el contenedor. Catálogo real directo: `http://host.docker.internal:8080` |
+| `DOCKER_CATALOG_BASE_URL` (nuevo, solo Docker Compose) | mock | `CATALOG_BASE_URL` que recibe el contenedor. Kong de B en tu máquina: `http://host.docker.internal:8000/api/catalogo` |
 | `KONG_PROXY_PORT`, `KONG_ADMIN_PORT` (nuevo, solo Docker Compose) | `8000`, `8001` | Puertos de nuestro Kong en el host; `8100`/`8101` para convivir con el Kong de Catálogo |
 | `POSTGRES_HOST_PORT` (nuevo, solo Docker Compose) | `5432` | Puerto de PostgreSQL en el host |
 | `JWT_SECRET` | `dev-secret-change-me` | Secreto HS256. En producción es obligatorio cambiarlo: el servicio no arranca con el valor por defecto |
+| `KEYCLOAK_LLAVES` (Sprint 5) | vacía | URL de las llaves públicas de Keycloak (`.../protocol/openid-connect/certs`). Vacía = solo HS256 |
+| `KEYCLOAK_EMISOR` (Sprint 5) | `http://localhost:8180/realms/tienda` | Emisor (`iss`) que deben traer los tokens RS256 |
+| `EUREKA_URL` (Sprint 5) | vacía | Servidor Eureka del compose de integración. Vacía = el servicio no se registra |
 
 ## 10. Reglas de negocio
 
@@ -589,6 +629,7 @@ La clave del checkout dura más que su vigencia para poder responder confirmacio
 - Un checkout vigente por usuario: uno nuevo reemplaza al anterior.
 - Confirmar es idempotente: repetir con el mismo `checkoutId` responde `200` con el mismo pedido.
 - Sin pago real: el pedido nace `CONFIRMADO`.
+- **Sprint 5:** cada intento de confirmar tiene su propia referencia en Catálogo (`checkoutId`, `checkoutId-r1`...). Un reintento por red reusa la del intento; solo una devolución de stock abre un intento nuevo.
 
 ### 10.2 Historial y recuperación (nuevo en la v1.4)
 
@@ -599,5 +640,5 @@ La clave del checkout dura más que su vigencia para poder responder confirmacio
 - **Recuperar revalida contra Catálogo**, igual que `GET /api/carrito`: precios cambiados y productos no disponibles se informan en `cambios`.
 - **Carrito vencido:** pasados 7 días sin actividad Redis lo borra y `/recuperar` responde `hayCarrito: false`.
 - **Arranque con PostgreSQL caído:** el servicio arranca igual, sin histórico, y `/ready` responde `degraded`. Sin Redis no arranca.
-- **Reglas en PostgreSQL (stretch SCRUM-27, pendiente):** cuando entre, se leerán con caché de 60 segundos y, si la base falla, se usarán las reglas del código. Hoy las reglas salen del código. Los descuentos nunca bloquean el carrito.
+- **Reglas en PostgreSQL (SCRUM-27, activo desde el Sprint 5):** se leen con caché de 60 segundos; si la base falla, se usan las últimas leídas o las del código (sección 6.1). Los descuentos nunca bloquean el carrito.
 - **Limitación conocida:** un pedido confirmado mientras PostgreSQL está caído queda solo en Redis (30 días); no hay reconciliación automática hacia PostgreSQL.

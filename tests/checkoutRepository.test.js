@@ -5,6 +5,7 @@ const mockMulti = {
   expire: jest.fn().mockReturnThis(),
   set: jest.fn().mockReturnThis(),
   lpush: jest.fn().mockReturnThis(),
+  hincrby: jest.fn().mockReturnThis(),
   exec: jest.fn(),
 };
 const mockRedis = {
@@ -37,7 +38,7 @@ test('registra el script Lua checkoutConfirm al cargar el módulo', () => {
 test('saveCheckout guarda el Hash con TTL de 24 h y mueve el puntero del usuario', async () => {
   await repo.saveCheckout(snapshot);
   expect(mockMulti.del).toHaveBeenCalledWith('checkout:chk_1');
-  expect(mockMulti.hset).toHaveBeenCalledWith('checkout:chk_1', 'data', JSON.stringify(snapshot), 'estado', 'PENDIENTE', 'userId', 'usr_1');
+  expect(mockMulti.hset).toHaveBeenCalledWith('checkout:chk_1', 'data', JSON.stringify(snapshot), 'estado', 'PENDIENTE', 'userId', 'usr_1', 'intentos', '0');
   expect(mockMulti.expire).toHaveBeenCalledWith('checkout:chk_1', 86400);
   expect(mockMulti.set).toHaveBeenCalledWith('checkout-usuario:usr_1', 'chk_1', 'EX', 86400);
 });
@@ -47,10 +48,10 @@ test('getCheckout devuelve null si no existe', async () => {
   expect(await repo.getCheckout('chk_x')).toBeNull();
 });
 
-test('getCheckout devuelve el snapshot igual a como entró (arreglos vacíos incluidos) + estado', async () => {
-  mockRedis.hgetall.mockResolvedValue({ data: JSON.stringify(snapshot), estado: 'CONFIRMADO', pedidoId: 'ped_1' });
+test('getCheckout devuelve el snapshot igual a como entró (arreglos vacíos incluidos) + estado y contador de intentos', async () => {
+  mockRedis.hgetall.mockResolvedValue({ data: JSON.stringify(snapshot), estado: 'CONFIRMADO', pedidoId: 'ped_1', intentos: '0' });
   const c = await repo.getCheckout('chk_1');
-  expect(c).toEqual({ ...snapshot, estado: 'CONFIRMADO', pedidoId: 'ped_1' });
+  expect(c).toEqual({ ...snapshot, estado: 'CONFIRMADO', pedidoId: 'ped_1', intentos: 0 });
   expect(Array.isArray(c.descuentosAplicados)).toBe(true);
 });
 
@@ -65,6 +66,13 @@ test('startConfirmation pasa ahora y el bloqueo al script y traduce la respuesta
 test('resetConfirmation devuelve el checkout a PENDIENTE', async () => {
   await repo.resetConfirmation('chk_1');
   expect(mockRedis.hset).toHaveBeenCalledWith('checkout:chk_1', 'estado', 'PENDIENTE');
+});
+
+test('resetConfirmationYSumarIntento suma 1 al contador y devuelve el checkout a PENDIENTE en un MULTI', async () => {
+  await repo.resetConfirmationYSumarIntento('chk_1');
+  expect(mockMulti.hincrby).toHaveBeenCalledWith('checkout:chk_1', 'intentos', 1);
+  expect(mockMulti.hset).toHaveBeenCalledWith('checkout:chk_1', 'estado', 'PENDIENTE');
+  expect(mockMulti.exec).toHaveBeenCalledTimes(1);
 });
 
 test('savePedidoYConfirmar guarda el pedido y marca CONFIRMADO en el mismo MULTI', async () => {
